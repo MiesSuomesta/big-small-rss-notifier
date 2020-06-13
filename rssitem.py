@@ -21,11 +21,11 @@ class RssItem:
 
 	def show_note(self):
 
-		category = self.getKeyValue("category")
-		pubdate = self.getKeyValue("pubDate")
-		title = self.getKeyValue("title")
-		link = self.getKeyValue("link")
-		description = self.getKeyValue("description")
+		category = self.getKeyValue("category", "")
+		pubdate = self.getKeyValue("pubDate", "")
+		title = self.getKeyValue("title", "")
+		link = self.getKeyValue("link", "")
+		description = self.getKeyValue("description", "")
 
 		msgTitle = '''{} | {}'''.format(category, title)
 		msgBody = '{}\n{} <a href="{}">Link</a>'.format(description, pubdate, link)
@@ -35,10 +35,10 @@ class RssItem:
 		self.shown = True
 		
 
-	def getKeyValue(self, val):
-		rv = None
+	def getKeyValue(self, val, default=None):
+		rv = default
 		if self.itemValues is not None:
-			rv = self.itemValues.get(val)
+			rv = self.itemValues.get(val, default)
 		return rv
 
 	def is_guid(self, gGuid):
@@ -50,7 +50,7 @@ class RssItem:
 
 	def debug_print(self):
 		y = json.dumps(self.itemValues, indent=4)
-		print(y)
+		#print(y)
 
 
 class RssSite:
@@ -72,8 +72,6 @@ class RssSite:
 
 	def setSourceDict(self, obj):
 		now = time.monotonic_ns()
-		if self.siteSourceDictObj is not None:
-			del self.siteSourceDictObj
 		self.siteSourceDictObj = obj
 		self.siteSourceDictObjTS = now
 
@@ -81,8 +79,6 @@ class RssSite:
 		return self.items
 
 	def setItems(self, itms):
-		if self.items is not None:
-			del self.items
 		self.items = itms
 
 	def getSourceDictTS(self):
@@ -96,8 +92,9 @@ class RssSite:
 
 	def debug_print(self):
 		y = json.dumps(self.siteSourceDictObj, indent=4)
-		#print(y)
+		print(y)
 		
+
 
 	def siteSourceDictObjUpdate(self):
 
@@ -161,12 +158,16 @@ class RssSiteKL(RssSite):
 		super().__init__(uri)
 		self.update()
 
-	def is_guid_listed(self, gGuid):
-		sItems = super().getItems()
-		for (ts, itm) in sItems:
+	# 0 no, 1 yes, 2 no item 
+	def is_guid_shown(self, gGuid):
+		rv = 2
+		for (ts, itm) in super().getItems():
 			if itm.is_guid(gGuid):
-				return True
-		return False		
+				if itm.is_shown():
+					rv = 1
+				else:
+					rv = 0
+		return rv
 
 	def update(self):
 		super().update()
@@ -174,13 +175,10 @@ class RssSiteKL(RssSite):
 		super().setSourceDict(self.ch_dictObj)
 		super().debug_print()
 
-		self.ch_description = self.ch_dictObj.get("description")
-
 		for i in self.ch_dictObj.get("item"):
-			if not self.is_guid_listed( i.get("guid") ):
+			rv = self.is_guid_shown( i.get("guid") )
+			if rv == 2:
 				rssitemobj = RssItem(i)
-		#		print("Inserting:\n")
-		#		rssitemobj.debug_print()
 				super().add_rss_item(rssitemobj)
 
 
