@@ -1,0 +1,14 @@
+{
+       "kauppalehti": {
+                "username": "username of kauppalehti",
+                "password": "password of kauppalehti"
+       },
+       "yle": {
+                "username": "username of yle",
+                "password": "password of yle"
+       },
+       "last site": {
+                "username": "abc",
+                "password": "dfg"
+       }
+}

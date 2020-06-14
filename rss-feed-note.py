@@ -1,17 +1,10 @@
 #!/usr/bin/python
 import sys
-import gi
 from rssitem import *
-gi.require_version('Notify', '0.7')
-from gi.repository import Notify
 
-Notify.init("Notifier")
-
-def show_note(title, body):
-	note = Notify.Notification.new(title, body, "dialog-information")
-	note.show()
-
-
+# Sites
+from rsssite_kauppalehti import *
+from rsssite_yle import *
 
 # -------------------------------------------
 
@@ -20,11 +13,21 @@ URLS_KL = []
 URLS_KL.append("https://feeds.kauppalehti.fi/rss/main")
 URLS_KL.append("https://feeds.kauppalehti.fi/rss/klnyt")
 
+URLS_YLE = []
+
+URLS_YLE.append("https://feeds.yle.fi/uutiset/v1/recent.rss?publisherIds=YLE_UUTISET")
+URLS_YLE.append("https://feeds.yle.fi/uutiset/v1/majorHeadlines/YLE_UUTISET.rss")
+
+
+shotter = Screenshot()
+
 Sites = []
 
-siteObj = RssSiteKL(URLS_KL)
+siteObjKL = RssSiteKL(URLS_KL, shotter)
+siteObjYLE = RssSiteYle(URLS_YLE, shotter)
 
-Sites.append(siteObj)
+Sites.append(siteObjKL)
+Sites.append(siteObjYLE)
 
 shownItemsAllSites = []
 

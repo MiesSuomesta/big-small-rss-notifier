@@ -5,8 +5,11 @@ import xmltodict
 import json
 import gi
 import time
+from htmltogif import *
+import tempfile as TF
+
 gi.require_version('Notify', '0.7')
-from gi.repository import Notify
+from gi.repository import Notify, GdkPixbuf
 
 Notify.init("Notifier")
 
@@ -15,9 +18,20 @@ class RssItem:
 	itemValues = None
 	timestamp = None
 	shown = False
-	def __init__(self, values):
+	scrshot = None
+	siteName = None
+	thumbnailFP = None
+
+	def __init__(self, values, siteName, shotter):
+		print("RSSITEM", shotter, siteName)
+		self.scrshot = shotter
 		self.itemValues = values;
+		self.siteName = siteName
 		self.timestamp = time.monotonic_ns()
+
+	def __del__(self):
+		if self.thumbnailFP is not None:
+			self.thumbnailFP.close()
 
 	def show_note(self):
 
@@ -27,10 +41,34 @@ class RssItem:
 		link = self.getKeyValue("link", "")
 		description = self.getKeyValue("description", "")
 
-		msgTitle = '''{} | {}'''.format(category, title)
-		msgBody = '{}\n{} <a href="{}">Link</a>'.format(description, pubdate, link)
+		thumbnailFP = self.scrshot.makeThumbnail(link, self.siteName, 150, 100)
+
+		categories = ""
+		for cat in category:
+
+			comma=", "
+			if categories == "":
+				comma = ""
+
+			categories = categories + comma + cat
+
+		msgTitle = '''{}:\n{}'''.format(categories, title)
+		msgBody = '{}\n{} <a href="{}">Link</a>'.format( \
+				description, pubdate, link)
 
 		note = Notify.Notification.new(msgTitle, msgBody, "dialog-information")
+
+		image = None
+		if thumbnailFP is not None:
+			try:
+				image = GdkPixbuf.Pixbuf.new_from_file(thumbnailFP)
+			except:
+				pass
+
+			finally:
+				if image is not None:
+					note.set_image_from_pixbuf(image)
+
 		note.show()
 		self.shown = True
 		
@@ -54,17 +92,19 @@ class RssItem:
 
 
 class RssSite:
-	items = []
-	siteURI = []
-	siteSourceDictObj = None
-	siteSourceDictObjTS = None
 
 	MAX_TS_DIFF_SECS = 30
 	MAX_TS_DIFF_NS = MAX_TS_DIFF_SECS * 1000 * 1000
 	
 
-	def __init__(self, uri):
+	def __init__(self, uri, siteName, shotter):
+		print("RSSSITE", shotter)
+		self.items = []
+		self.siteSourceDictObj = None
+		self.siteSourceDictObjTS = None
+		self.scrshot = shotter
 		self.siteURI = uri
+		self.siteName = siteName
 		self.update()
 
 	def getSourceDict(self):
@@ -148,39 +188,4 @@ class RssSite:
 				nlist.append((ts, itm));
 
 		return nlist
-
-class RssSiteKL(RssSite):
-
-	# description
-	ch_dictObj = None
-
-	def __init__(self, uri):
-		super().__init__(uri)
-		self.update()
-
-	# 0 no, 1 yes, 2 no item 
-	def is_guid_shown(self, gGuid):
-		rv = 2
-		for (ts, itm) in super().getItems():
-			if itm.is_guid(gGuid):
-				if itm.is_shown():
-					rv = 1
-				else:
-					rv = 0
-		return rv
-
-	def update(self):
-		super().update()
-		self.ch_dictObj = super().getSourceDict().get("rss").get("channel")
-		super().setSourceDict(self.ch_dictObj)
-		super().debug_print()
-
-		for i in self.ch_dictObj.get("item"):
-			rv = self.is_guid_shown( i.get("guid") )
-			if rv == 2:
-				rssitemobj = RssItem(i)
-				super().add_rss_item(rssitemobj)
-
-
-
 
