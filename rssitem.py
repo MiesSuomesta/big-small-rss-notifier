@@ -43,16 +43,18 @@ class RssItem:
 
 		thumbnailFP = self.scrshot.makeThumbnail(link, self.siteName, 150, 100)
 
-		categories = ""
-		for cat in category:
+		categories = category
+		if isinstance(category, list):
+			categories = ""
+			for cat in category:
 
-			comma=", "
-			if categories == "":
-				comma = ""
+				comma=", "
+				if categories == "":
+					comma = ""
 
-			categories = categories + comma + cat
+				categories = categories + comma + cat
 
-		msgTitle = '''{}:\n{}'''.format(categories, title)
+		msgTitle = '''{}/{}:\n{}'''.format(self.siteName, categories, title)
 		msgBody = '{}\n{} <a href="{}">Link</a>'.format( \
 				description, pubdate, link)
 
