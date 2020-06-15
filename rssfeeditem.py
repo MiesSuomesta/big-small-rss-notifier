@@ -42,7 +42,7 @@ class RssFeed():
 	
 		self.SOURCE = pSiteName+':'+ pUrl
 		self.timestamp = time.monotonic_ns()
-
+		self.shown = False
 		self.info = {}
 		self.info['url'] = pUrl;
 		self.info['siteName'] = pSiteName
@@ -61,7 +61,7 @@ class RssFeed():
 	def setItemlist(self, pItemlist):
 		self.Itemlist = pItemlist
 	
-	def update(self):
+	def update(self, deletedGuids):
 
 
 		feed = feedparser.parse(self.info['url'])
@@ -80,6 +80,11 @@ class RssFeed():
 			if entryGuid in Items:
 				print("guid exists..")
 				continue
+
+			if entryGuid in deletedGuids:
+				print("guid already shown: {}".format(entryGuid))
+				continue
+
 
 			if not self.filter(entry):
 				continue
@@ -101,11 +106,11 @@ class RssFeed():
 			update['date'] = time.strftime('%Y-%m-%d %H:%M:%S', raw_date)
 			update['timeNS'] = time.monotonic_ns()
 			update['source'] = self.SOURCE
+			update['shown'] = False
 			
 			Items.append( (update['timeNS'], update) )
 
 			self.setItemlist(Items)
-
 
 	def clean_body(self, text):
 		return clean_html(text)

@@ -35,7 +35,7 @@ Feeds.append( RssFeed('iltasanomat', "https://www.is.fi/rss/elokuvat.xml") )
 
 
 class Firehose:
-	def __init__(self, out=sys.stdout, delay=5.0,):
+	def __init__(self, out=sys.stdout, delay=5.0):
 		self.screenshot = Screenshot()
 		# file-like object to write output to
 		self.out = out
@@ -44,6 +44,7 @@ class Firehose:
 		# list of installed source objects
 		self._sources = []
 		self.itemsAdded = []
+		self.guidsDeleted = []
 
 	def setSources(self, feeds):
 		self._sources = feeds
@@ -53,8 +54,10 @@ class Firehose:
 
 	def setItems(self, alist):
 		self.itemsAdded = alist
+		self.itemsAdded = sorted(alist, key=lambda x: x[0], reverse=False)
 
 	def getItems(self):
+		self.itemsAdded = sorted(self.itemsAdded, key=lambda x: x[0], reverse=False)
 		return self.itemsAdded
 
 	def update(self):
@@ -63,7 +66,7 @@ class Firehose:
 		for source in self._sources:
 			try:
 				#print("--> items update {}".format(source))
-				source.update()
+				source.update(self.guidsDeleted)
 				#print("items updated:", source.getItemlist())
 				alist.extend(source.getItemlist())
 				#print("alist items updated: {}".format(alist))
@@ -78,22 +81,47 @@ class Firehose:
 	def show_notes(self):
 		''' Update all items added. '''
 		while True:
-		
-			alist = self.getItems()
-			alist = sorted(alist, key=lambda x: x[0], reverse=False)
-
 			#print("show_notes: items:", alist)
 
-			for (ts,pItem) in alist:
+			for (ts,pItem) in self.getItems():
 				time.sleep(self.delay)
 				#print("show_notes:: item:{} and {}".format( type(ts), type(pItem)))
 				try:
 					#print("item SHOW:{} {}".format(ts, pItem))
 					show_note(self.screenshot, pItem)
+					pItem['shown'] = True;
 				except Exception as e:
 					print("item show problem: {}".format(e))
 					continue
 			time.sleep(5)
+
+	def cleanup(self):
+		''' Update all items added. '''
+		while True:
+			time.sleep(self.delay*2)
+			print("Cleaning up............")		
+			alist = self.getItems()
+			for upditem in alist:
+#				try:
+				(ts,pItem) = upditem
+				if 'shown' in pItem:
+					if pItem['shown']:
+						print("Cleaning up: {}".format(pItem['guid']))
+
+						self.guidsDeleted.append(pItem['guid'])
+						filePath = updateItem['tmpimage']
+
+						if os.path.exists(filePath):
+							os.remove(filePath)
+
+						alist.remove( upditem )
+						self.setItems(alist)
+						alist = self.getItems()
+						del pItem;
+#				except Exception as e:
+#					print("item cleanup problem: {}".format(e))
+#					continue
+			time.sleep(self.delay*2)
 
 	def start(self):
 		''' Start the firehose. '''
@@ -101,7 +129,12 @@ class Firehose:
 			print("update...")
 			self.update()
 			#print("update sleep...")
-			time.sleep(self.delay/2)
+			time.sleep(self.delay/4)
+
+	def cleaner(self):
+		''' Start the firehose. '''
+		while True:
+			self.cleanup()
 
 def getKeyVal(ofrom, key, default):
 	rv = default
@@ -137,6 +170,8 @@ def show_note(screenshot, updateItem):
 	category = tags[0]['term']
 
 	thumbnailFP = screenshot.makeThumbnail(link, siteName, 150, 100)
+
+	updateItem['tmpimage'] = thumbnailFP
 
 	categories = category
 
@@ -187,6 +222,9 @@ def start_notes_show(tn, MO):
 def start_notes_build(tn, MO):
 	MO.start()
 
+def start_notes_cleaner(tn, MO):
+	MO.cleaner()
+
 
 MainObj = Firehose(delay=30);
 
@@ -194,6 +232,7 @@ MainObj.setSources(Feeds)
 
 _thread.start_new_thread(start_notes_show, 	('Note show',MainObj,))
 _thread.start_new_thread(start_notes_build, 	('Note build',MainObj,))
+_thread.start_new_thread(start_notes_cleaner, 	('Note cleaner',MainObj,))
 
 while True:
 	#print("Sleep .........")
