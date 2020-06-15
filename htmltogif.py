@@ -23,16 +23,20 @@ class Screenshot():
 
 	def makeThumbnail(self, url, siteName, w, h, options=None):
 
-		HOME = os.getenv('HOME', None)
+		HOME = os.getenv('APPDATA', None)
+		datasAt=HOME
 		if HOME is not None:
-			HOME = HOME + "/"
+			datasAt = os.path.join(datasAt, "rss-notifier")
+			datasAt = os.path.join(datasAt, "rss-notifier-login-datas.json")
 
-		siteData = LDM.get_login_data(HOME + '.rss-notifier-login-datas.json', siteName)
+		print("login datas at: {}".format(datasAt))
+
+		siteData = LDM.get_login_data(datasAt, siteName)
 
 		if options is None:
 			options = {}
 
-		#print("siteData", siteData)
+		print("Site login info:", siteData)
 
 		if siteData is not None:
 			try:
@@ -63,21 +67,22 @@ class Screenshot():
 
 		imageraw = self.download_image(image)
 
-		tfileIn  = TF.NamedTemporaryFile(prefix="tmp-thumbnail-rss-notifier-org", suffix=".png", delete=True)
-		tfileOut = TF.NamedTemporaryFile(prefix="tmp-thumbnail-rss-notifier-scaled", suffix=".png", delete=False)
-
-
+		tfileIn  = os.path.join(TF.gettempdir(), os.urandom(24).hex())
+		tfileOut = os.path.join(TF.gettempdir(), os.urandom(24).hex())
+		tfileOut = tfileOut + ".png"
 		# write string containing pixel data to file
-		with open(tfileIn.name, 'wb') as outf:
+		with open(tfileIn, 'wb') as outf:
 		    outf.write(imageraw)
 
-		imgGot = Image.open(tfileIn.name);
+		imgGot = Image.open(tfileIn);
 		#print("imgGot:", imgGot)
 		imgGot.thumbnail((w,h), Image.ANTIALIAS)
-		imgGot.save(tfileOut.name)
+		imgGot.save(tfileOut, "PNG")
 
+		if os.path.exists(tfileIn):
+			os.remove(tfileIn)
 
-		return tfileOut.name
+		return tfileOut
 
 
 

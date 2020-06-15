@@ -7,7 +7,7 @@ from htmltogif import *
 from bs4 import BeautifulSoup
 import feedparser
 import time
-from stream import *
+from win10toast import ToastNotifier
 
 
 # -------------------------------------------
@@ -86,13 +86,13 @@ class Firehose:
 			for (ts,pItem) in self.getItems():
 				time.sleep(self.delay)
 				#print("show_notes:: item:{} and {}".format( type(ts), type(pItem)))
-				try:
+				#try:
 					#print("item SHOW:{} {}".format(ts, pItem))
-					show_note(self.screenshot, pItem)
-					pItem['shown'] = True;
-				except Exception as e:
-					print("item show problem: {}".format(e))
-					continue
+				show_note(self.screenshot, pItem)
+				pItem['shown'] = True;
+				#except Exception as e:
+				#	print("item show problem: {}".format(e))
+				#	continue
 			time.sleep(5)
 
 	def cleanup(self):
@@ -102,7 +102,7 @@ class Firehose:
 			print("Cleaning up............")		
 			alist = self.getItems()
 			for upditem in alist:
-#				try:
+#				#try:
 				(ts,pItem) = upditem
 				if 'shown' in pItem:
 					if pItem['shown']:
@@ -144,7 +144,10 @@ def getKeyVal(ofrom, key, default):
 	#print("{} {} -> {}".format(type(ofrom), key, rv))
 	return rv
 
-def show_note(screenshot, updateItem):
+# One-time initialization
+toaster = ToastNotifier()
+
+def show_note(screenshot, updateItem, toaster=toaster):
 
 	#print("show_note:: RAW: {}".format(updateItem))
 
@@ -193,23 +196,12 @@ def show_note(screenshot, updateItem):
 	else:
 		description = description + "\n"
 
-	msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
+	msgTitle = '''// {} //\n{}\n{}'''.format(siteName, categories, title)
 	msgBody = str(description) + str(published) +" <a href='"+ str(link) +"'>Link to news</a>"
 
-	note = Notify.Notification.new(msgTitle, msgBody, "dialog-information")
+        # Show notification whenever needed
+	toaster.show_toast(msgTitle, msgBody, threaded=True, icon_path=thumbnailFP, duration=20)  # 3 seconds
 
-	image = None
-	if thumbnailFP is not None:
-		try:
-			image = GdkPixbuf.Pixbuf.new_from_file(thumbnailFP)
-		except:
-			pass
-
-		finally:
-			if image is not None:
-				note.set_image_from_pixbuf(image)
-
-	note.show()
 
 
 
@@ -226,7 +218,7 @@ def start_notes_cleaner(tn, MO):
 	MO.cleaner()
 
 
-MainObj = Firehose(delay=30);
+MainObj = Firehose(delay=10);
 
 MainObj.setSources(Feeds)
 

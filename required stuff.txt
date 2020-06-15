@@ -1,0 +1,13 @@
+installed
+pip installed
+	pypiwin32
+	setuptools
+ 	win10toast
+	pillow
+	urllib3
+	xmltodict
+	Gdk
+	webpreview
+	feedparser
+	lxml
+	

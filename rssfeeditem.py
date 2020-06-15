@@ -3,16 +3,10 @@ import traceback
 import urllib3
 import xmltodict
 import json
-import gi
 import re
 import time
-#from htmltogif import *
 import tempfile as TF
 
-gi.require_version('Notify', '0.7')
-from gi.repository import Notify, GdkPixbuf
-
-Notify.init("Notifier")
 
 from bs4 import BeautifulSoup
 import feedparser
