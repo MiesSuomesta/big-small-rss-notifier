@@ -7,13 +7,14 @@ from htmltogif import *
 from bs4 import BeautifulSoup
 import feedparser
 import time
-from win10toast import ToastNotifier
+#from win10toast import ToastNotifier
 from plyer import notification
 import webbrowser
+from windows_balloon_note import *
 
 # -------------------------------------------
 
-USE_PLYER = True
+USE_PLYER = False
 
 Feeds = []
 
@@ -57,11 +58,11 @@ class Firehose:
 
 	def setItems(self, alist):
 		from operator import itemgetter
-		self.itemsAdded = sorted(alist, key=itemgetter(0), reverse=True)
+		self.itemsAdded = sorted(alist, key=itemgetter(0), reverse=False)
 
 	def getItems(self):
 		from operator import itemgetter
-		self.itemsAdded = sorted(self.itemsAdded, key=itemgetter(0), reverse=True)
+		self.itemsAdded = sorted(self.itemsAdded, key=itemgetter(0), reverse=False)
 		return self.itemsAdded
 
 	def dumpItems(self):
@@ -94,7 +95,7 @@ class Firehose:
 			#print("show_notes: items:", alist)
 
 			for (ts,pItem) in self.getItems():
-				time.sleep(self.delay)
+				time.sleep(self.delay/8)
 				#print("show_notes:: item:{} and {}".format( type(ts), type(pItem)))
 				#try:
 					#print("item SHOW:{} {}".format(ts, pItem))
@@ -116,7 +117,7 @@ class Firehose:
 				(ts,pItem) = upditem
 				if 'shown' in pItem:
 					if pItem['shown']:
-						print("Cleaning up: {}".format(pItem['guid']))
+						#print("Cleaning up: {}".format(pItem['guid']))
 
 						self.guidsDeleted.append(pItem['guid'])
 						filePath = pItem['tmpimage']
@@ -155,9 +156,13 @@ def getKeyVal(ofrom, key, default):
 	return rv
 
 # One-time initialization
-toaster = ToastNotifier()
+#toaster = ToastNotifier()
 
-def show_note(screenshot, updateItem, toaster=toaster):
+def show_note(screenshot, updateItem):
+
+	def show_note_item_clicked(obj):
+		print("Open browset to {}".format(obj))
+		webbrowser.open(obj)
 
 	#print("show_note:: RAW: {}".format(updateItem))
 
@@ -179,8 +184,13 @@ def show_note(screenshot, updateItem, toaster=toaster):
 	description 	= getKeyVal(rawEntry, 'description', None)
 	siteName 	= getKeyVal(updateItem, 'siteName', None)
 
+	category="News from " + siteName
+	if tags is not None:
+		if tags[0] is not None:
+			if 'term' in tags[0]:
+				category = tags[0]['term']
+		
 
-	category = tags[0]['term']
 
 	thumbnailFP = screenshot.makeThumbnail(link, siteName, 150, 100)
 
@@ -207,7 +217,14 @@ def show_note(screenshot, updateItem, toaster=toaster):
 		description = description + "\n"
 
 	msgTitle = '''// {} //\n{}\n{}'''.format(siteName, categories, title)
-	msgBody = str(description) + str(published) +" <a href='"+ str(link) +"'>Link to news</a>"
+
+	if (len(siteName) + len(categories)) < 40:
+		msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
+
+	msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
+	msgBody = str(description) + str(published)
+
+
 
 	global USE_PLYER
         # Show notification whenever needed
@@ -215,23 +232,25 @@ def show_note(screenshot, updateItem, toaster=toaster):
 		msgTitle = msgTitle[0:60] + "..."
 		msgBody = msgBody[0:252] + "..."
 		notification.notify(
-		    title=msgTitle,
-		    message=msgBody,
-		    app_icon=thumbnailFP,  # e.g. 'C:\\icon_32x32.ico'
-		    timeout=20,  # seconds
-		 #   callback_clicked = lambda: self.item_clicked(link)
+			title=msgTitle,
+			message=msgBody,
+			app_icon=thumbnailFP,  # e.g. 'C:\\icon_32x32.ico'
+			timeout=30,  # seconds
+			app_callback=item_clicked,
+			app_callback_arg=link
 		    )
 	else:
-		toaster.show_toast(msgTitle,
+		wbn = WindowsBalloonNote()
+
+		wbn.show_toast(msgTitle,
 					msgBody,
 					threaded=True,
 					icon_path=thumbnailFP,
-		#			callback_clicked = lambda: self.item_clicked(link)
+					cbFunc = show_note_item_clicked,
+				        cbArgs = link
 				)
 
-	def item_clicked(self, link):
-		print("Open browset to {}".format(link))
-		webbrowser.open(link)
+
 
 
 
