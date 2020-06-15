@@ -74,10 +74,15 @@ class RssFeed():
 			if entryGuid in Items:
 				print("guid exists..")
 				continue
+			#else:
+                        #        print("guid {}".format(entryGuid))
+				
 
 			if entryGuid in deletedGuids:
 				print("guid already shown: {}".format(entryGuid))
 				continue
+			#else:
+                        #        print("guid {}".format(entryGuid))
 
 
 			if not self.filter(entry):
@@ -102,7 +107,7 @@ class RssFeed():
 			update['source'] = self.SOURCE
 			update['shown'] = False
 			
-			Items.append( (update['timeNS'], update) )
+			Items.append( (update['date'], update) )
 
 			self.setItemlist(Items)
 
