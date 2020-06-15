@@ -4,6 +4,7 @@ import urllib3
 import xmltodict
 import json
 import gi
+import re
 import time
 from htmltogif import *
 import tempfile as TF
@@ -15,6 +16,7 @@ Notify.init("Notifier")
 
 
 class RssItem:
+
 	itemValues = None
 	timestamp = None
 	shown = False
@@ -22,18 +24,18 @@ class RssItem:
 	siteName = None
 	thumbnailFP = None
 
-	def __init__(self, values, siteName, shotter):
-		print("RSSITEM", shotter, siteName)
+	def __init__(self, values, siteName, shotter, xml_attribs=None, namespaces=None, force_cdata=False, preprocessrawxml=None):
+		#print("RSSITEM", shotter, siteName)
 		self.scrshot = shotter
 		self.itemValues = values;
 		self.siteName = siteName
 		self.timestamp = time.monotonic_ns()
-
-	def __del__(self):
-		if self.thumbnailFP is not None:
-			self.thumbnailFP.close()
+		self.update(xml_attribs=xml_attribs, namespaces=namespaces, force_cdata=force_cdata, preprocessrawxml=preprocessrawxml)
 
 	def show_note(self):
+
+		if self.shown:
+			return None
 
 		category = self.getKeyValue("category", "")
 		pubdate = self.getKeyValue("pubDate", "")
@@ -54,9 +56,16 @@ class RssItem:
 
 				categories = categories + comma + cat
 
-		msgTitle = '''{}/{}:\n{}'''.format(self.siteName, categories, title)
-		msgBody = '{}\n{} <a href="{}">Link</a>'.format( \
-				description, pubdate, link)
+		if len(categories) > 0:
+			categories = categories + ":"
+
+		if description is None:
+			description = ""
+		else:
+			description = description + "\n"
+
+		msgTitle = '''// {} // {}\n{}'''.format(self.siteName, categories, title)
+		msgBody = str(description) + str(pubdate) +" <a href='"+ str(link) +"'>Link to news</a>"
 
 		note = Notify.Notification.new(msgTitle, msgBody, "dialog-information")
 
@@ -72,6 +81,7 @@ class RssItem:
 					note.set_image_from_pixbuf(image)
 
 		note.show()
+
 		self.shown = True
 		
 
@@ -90,7 +100,7 @@ class RssItem:
 
 	def debug_print(self):
 		y = json.dumps(self.itemValues, indent=4)
-		#print(y)
+		print(y)
 
 
 class RssSite:
@@ -99,15 +109,19 @@ class RssSite:
 	MAX_TS_DIFF_NS = MAX_TS_DIFF_SECS * 1000 * 1000
 	
 
-	def __init__(self, uri, siteName, shotter):
-		print("RSSSITE", shotter)
+	def __init__(self, uri, siteName, shotter, 
+			pxml_attribs=None,
+			pnamespaces=None, 
+			pforce_cdata=False, 
+			ppreprocessrawxml=None):
+		#print("RSSSITE", shotter)
 		self.items = []
 		self.siteSourceDictObj = None
 		self.siteSourceDictObjTS = None
 		self.scrshot = shotter
 		self.siteURI = uri
 		self.siteName = siteName
-		self.update()
+		self.update(xml_attribs=pxml_attribs, namespaces=pnamespaces, force_cdata=pforce_cdata, preprocessrawxml=ppreprocessrawxml)
 
 	def getSourceDict(self):
 		return self.siteSourceDictObj
@@ -129,8 +143,8 @@ class RssSite:
 	def setSourceDictTS(self, ts):
 		self.siteSourceDictObjTS = ts
 
-	def update(self):
-		self.siteSourceDictObjUpdate()
+	def update(self, pxml_attribs=None, pnamespaces=None, pforce_cdata=False, ppreprocessrawxml=None):
+		self.siteSourceDictObjUpdate(xml_attribs=pxml_attribs, namespaces=pnamespaces, force_cdata=pforce_cdata, preprocessrawxml=ppreprocessrawxml)
 
 	def debug_print(self):
 		y = json.dumps(self.siteSourceDictObj, indent=4)
@@ -138,8 +152,7 @@ class RssSite:
 		
 
 
-	def siteSourceDictObjUpdate(self):
-
+	def siteSourceDictObjUpdate(self, xml_attribs=None, namespaces=None, force_cdata=False, preprocessrawxml=None):
 		def dictMerge(dict1, dict2):
 			dict2.update(dict1)
 			return dict2
@@ -149,13 +162,27 @@ class RssSite:
 
 			http = urllib3.PoolManager()
 			response = http.request('GET', uri)
+			xmldata = response.data
+
+			if preprocessrawxml is not None:
+				print("pre processing.....")
+				xmldata = preprocessrawxml(xmldata)
+				print("pre processed.")
+
+
 			try:
-				uriDictObj = xmltodict.parse(response.data)
+				uriDictObj = xmltodict.parse(xmldata,
+							xml_attribs=xml_attribs,
+							namespaces=namespaces,
+							force_cdata=force_cdata)
+
 				sourceDictObj = dictMerge(uriDictObj, sourceDictObj)
 			except:
-		#		print("Failed to parse xml from response (%s)" % traceback.format_exc())
+				print("Failed to parse xml from response (%s)" % traceback.format_exc())
 				return None
-		#print("Setting dict: {}".format(sourceDictObj))
+
+
+		print("Setting dict: {}".format(sourceDictObj))
 		self.setSourceDict(sourceDictObj)
 
 		now = time.monotonic_ns()

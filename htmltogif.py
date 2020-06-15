@@ -2,53 +2,24 @@ from PIL import Image
 import glob, os
 import logindatamanager as LDM
 import tempfile as TF
+from webpreview import web_preview
 import os
 import sys
 import time
-from PySide2.QtCore import *
-from PySide2.QtGui import *
-from PySide2.QtWidgets import *
-from PySide2.QtWebEngineWidgets import *
+from base64 import b64encode
+import urllib
+import urllib.request
 
 
-class Screenshot(QWebEngineView):
-	def __init__(self):
-		self.app = QApplication(sys.argv)
-		QWebEngineView.__init__(self)
-		self._loaded = False
-		self.setAttribute(Qt.WA_DontShowOnScreen)
-		self.page().settings().setAttribute(
-			QWebEngineSettings.ShowScrollBars, False)
-		self.loadFinished.connect(self._loadFinished)
-		self.show()
+class Screenshot():
 
-	def wait_load(self, delay=0):
-		while not self._loaded:
-			self.app.processEvents()
-			time.sleep(delay)
-
-		self._loaded = False
-
-	def _loadFinished(self, result):
-		print("Loading done: ", result)
-		self.setVisible(True)
-		size = self.page().contentsSize().toSize()
-		self.resize(size)
-		time.sleep(2)
-		self._loaded = True
-
-	def get_image(self, url):
-
-		self.load(url)
-
-		self.wait_load()
-
-		grabbed = self.grab()
-
-		print("grab: ", grabbed)
-		print("grab: ", grabbed.size())
-		grabbed.save("/tmp/foo.png", 'PNG')
-		return grabbed
+	def download_image(self, url):
+		data = None
+		#print("url {} reading ...".format(url))
+		with urllib.request.urlopen(url) as response:
+			data = response.read()
+		#print("url {} read.".format(url))
+		return data
 
 	def makeThumbnail(self, url, siteName, w, h, options=None):
 
@@ -61,7 +32,7 @@ class Screenshot(QWebEngineView):
 		if options is None:
 			options = {}
 
-		print("siteData", siteData)
+		#print("siteData", siteData)
 
 		if siteData is not None:
 			try:
@@ -70,26 +41,43 @@ class Screenshot(QWebEngineView):
 			except KeyError:
 				pass
 
-		options['custom-header'] : [
-			('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0')
-		]
+		# Auth for urllib and webpreviewer
+		auth_handler = urllib.request.HTTPBasicAuthHandler()
+		auth_handler.add_password('realm', 'host', options['username'], options['password'])
+
+		secret = options['username']+":"+options['password']
+		secret = secret.encode()
+		secretEncoded = b64encode(secret).decode("ascii")
+
+		copener = urllib.request.build_opener(auth_handler)
+		urllib.request.install_opener(copener)
+
+		# --------------------------------------------------------------
+
+		headers = {
+			'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0',
+			'Authorization': 'Basic {}'.format(secretEncoded)
+		}
+
+		title, description, image = web_preview(url, headers=headers, parser="lxml")
+
+		imageraw = self.download_image(image)
+
+		tfileIn  = TF.NamedTemporaryFile(prefix="tmp-thumbnail-rss-notifier-org", suffix=".png", delete=True)
+		tfileOut = TF.NamedTemporaryFile(prefix="tmp-thumbnail-rss-notifier-scaled", suffix=".png", delete=False)
 
 
-		print("options", options)
+		# write string containing pixel data to file
+		with open(tfileIn.name, 'wb') as outf:
+		    outf.write(imageraw)
 
-		pUrl = QUrl(url)
-		pUrl.setUserName(options['username'])
-		pUrl.setPassword(options['password'])
-
-		tfile = TF.NamedTemporaryFile(prefix="tmp-thumbnail-rss-notifier", suffix=".png", delete=False)
-
-		imgGot = self.get_image(pUrl)
-		print("imgGot:", imgGot)
-		scaledImg = imgGot.scaledToHeight(h)
-		scaledImg.save(tfile.name)
+		imgGot = Image.open(tfileIn.name);
+		#print("imgGot:", imgGot)
+		imgGot.thumbnail((w,h), Image.ANTIALIAS)
+		imgGot.save(tfileOut.name)
 
 
-		return tfile.name
+		return tfileOut.name
 
 
 
