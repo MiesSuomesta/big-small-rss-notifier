@@ -9,6 +9,7 @@ import feedparser
 import time
 from win10toast import ToastNotifier
 from plyer import notification
+import webbrowser
 
 # -------------------------------------------
 
@@ -118,7 +119,7 @@ class Firehose:
 						print("Cleaning up: {}".format(pItem['guid']))
 
 						self.guidsDeleted.append(pItem['guid'])
-						filePath = upditem['tmpimage']
+						filePath = pItem['tmpimage']
 
 						if os.path.exists(filePath):
 							os.remove(filePath)
@@ -208,19 +209,32 @@ def show_note(screenshot, updateItem, toaster=toaster):
 	msgTitle = '''// {} //\n{}\n{}'''.format(siteName, categories, title)
 	msgBody = str(description) + str(published) +" <a href='"+ str(link) +"'>Link to news</a>"
 
+	def item_clicked(self, updateItem):
+		print("Open browset to {}".format(link))
+		webbrowser.open(link)
+
+
 	global USE_PLYER
         # Show notification whenever needed
 	if USE_PLYER:
 		msgTitle = msgTitle[0:60] + "..."
 		msgBody = msgBody[0:252] + "..."
 		notification.notify(
-		    title=msgTitle,
-		    message=msgBody,
-		    app_icon=thumbnailFP,  # e.g. 'C:\\icon_32x32.ico'
-		    timeout=20,  # seconds
-		)
+			title=msgTitle,
+			message=msgBody,
+			app_icon=thumbnailFP,  # e.g. 'C:\\icon_32x32.ico'
+			timeout=20,  # seconds
+			callback_clicked = item_clicked,
+			callback_arg = link
+		    )
 	else:
-		toaster.show_toast(msgTitle, msgBody, threaded=True, icon_path=thumbnailFP, duration=20)  # 3 seconds
+		toaster.show_toast(msgTitle,
+					msgBody,
+					threaded=True,
+					icon_path=thumbnailFP,
+					callback_clicked = self.item_clicked,
+					callback_arg = updateItem
+				)
 
 
 
