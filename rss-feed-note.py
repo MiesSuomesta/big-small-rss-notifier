@@ -7,10 +7,12 @@ from htmltogif import *
 from bs4 import BeautifulSoup
 import feedparser
 import time
-from stream import *
-
+from win10toast import ToastNotifier
+from plyer import notification
 
 # -------------------------------------------
+
+USE_PLYER = True
 
 Feeds = []
 
@@ -53,16 +55,24 @@ class Firehose:
 		return self._sources
 
 	def setItems(self, alist):
-		self.itemsAdded = alist
-		self.itemsAdded = sorted(alist, key=lambda x: x[0], reverse=False)
+		from operator import itemgetter
+		self.itemsAdded = sorted(alist, key=itemgetter(0), reverse=True)
 
 	def getItems(self):
-		self.itemsAdded = sorted(self.itemsAdded, key=lambda x: x[0], reverse=False)
+		from operator import itemgetter
+		self.itemsAdded = sorted(self.itemsAdded, key=itemgetter(0), reverse=True)
 		return self.itemsAdded
+
+	def dumpItems(self):
+		for itm in self.getItems():
+			ts = itm[0]
+			upditem = itm[1]
+			guid = upditem['guid']
+			print("- TS {}, guid: {}".format(ts, guid))
 
 	def update(self):
 		''' Update all sources. '''
-		alist = self.getItems()
+		alist = []
 		for source in self._sources:
 			try:
 				#print("--> items update {}".format(source))
@@ -73,10 +83,9 @@ class Firehose:
 			except Exception as e:
 				print("alist update problem: {}".format(e))
 				continue
-
 		self.setItems(alist)
-		#self.itemsAdded = sorted(self.itemsAdded, key=lambda x: x[0], reverse=False)
-
+		#self.dumpItems()
+		
 
 	def show_notes(self):
 		''' Update all items added. '''
@@ -86,13 +95,13 @@ class Firehose:
 			for (ts,pItem) in self.getItems():
 				time.sleep(self.delay)
 				#print("show_notes:: item:{} and {}".format( type(ts), type(pItem)))
-				try:
+				#try:
 					#print("item SHOW:{} {}".format(ts, pItem))
-					show_note(self.screenshot, pItem)
-					pItem['shown'] = True;
-				except Exception as e:
-					print("item show problem: {}".format(e))
-					continue
+				show_note(self.screenshot, pItem)
+				pItem['shown'] = True;
+				#except Exception as e:
+				#	print("item show problem: {}".format(e))
+				#	continue
 			time.sleep(5)
 
 	def cleanup(self):
@@ -102,14 +111,14 @@ class Firehose:
 			print("Cleaning up............")		
 			alist = self.getItems()
 			for upditem in alist:
-#				try:
+#				#try:
 				(ts,pItem) = upditem
 				if 'shown' in pItem:
 					if pItem['shown']:
 						print("Cleaning up: {}".format(pItem['guid']))
 
 						self.guidsDeleted.append(pItem['guid'])
-						filePath = updateItem['tmpimage']
+						filePath = upditem['tmpimage']
 
 						if os.path.exists(filePath):
 							os.remove(filePath)
@@ -144,7 +153,10 @@ def getKeyVal(ofrom, key, default):
 	#print("{} {} -> {}".format(type(ofrom), key, rv))
 	return rv
 
-def show_note(screenshot, updateItem):
+# One-time initialization
+toaster = ToastNotifier()
+
+def show_note(screenshot, updateItem, toaster=toaster):
 
 	#print("show_note:: RAW: {}".format(updateItem))
 
@@ -193,23 +205,23 @@ def show_note(screenshot, updateItem):
 	else:
 		description = description + "\n"
 
-	msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
+	msgTitle = '''// {} //\n{}\n{}'''.format(siteName, categories, title)
 	msgBody = str(description) + str(published) +" <a href='"+ str(link) +"'>Link to news</a>"
 
-	note = Notify.Notification.new(msgTitle, msgBody, "dialog-information")
+	global USE_PLYER
+        # Show notification whenever needed
+	if USE_PLYER:
+		msgTitle = msgTitle[0:60] + "..."
+		msgBody = msgBody[0:252] + "..."
+		notification.notify(
+		    title=msgTitle,
+		    message=msgBody,
+		    app_icon=thumbnailFP,  # e.g. 'C:\\icon_32x32.ico'
+		    timeout=20,  # seconds
+		)
+	else:
+		toaster.show_toast(msgTitle, msgBody, threaded=True, icon_path=thumbnailFP, duration=20)  # 3 seconds
 
-	image = None
-	if thumbnailFP is not None:
-		try:
-			image = GdkPixbuf.Pixbuf.new_from_file(thumbnailFP)
-		except:
-			pass
-
-		finally:
-			if image is not None:
-				note.set_image_from_pixbuf(image)
-
-	note.show()
 
 
 
@@ -226,7 +238,7 @@ def start_notes_cleaner(tn, MO):
 	MO.cleaner()
 
 
-MainObj = Firehose(delay=30);
+MainObj = Firehose(delay=10);
 
 MainObj.setSources(Feeds)
 

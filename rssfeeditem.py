@@ -3,16 +3,10 @@ import traceback
 import urllib3
 import xmltodict
 import json
-import gi
 import re
 import time
-#from htmltogif import *
 import tempfile as TF
 
-gi.require_version('Notify', '0.7')
-from gi.repository import Notify, GdkPixbuf
-
-Notify.init("Notifier")
 
 from bs4 import BeautifulSoup
 import feedparser
@@ -80,10 +74,15 @@ class RssFeed():
 			if entryGuid in Items:
 				print("guid exists..")
 				continue
+			else:
+                                print("guid {}".format(entryGuid))
+				
 
 			if entryGuid in deletedGuids:
 				print("guid already shown: {}".format(entryGuid))
 				continue
+			else:
+                                print("guid {}".format(entryGuid))
 
 
 			if not self.filter(entry):
@@ -108,7 +107,7 @@ class RssFeed():
 			update['source'] = self.SOURCE
 			update['shown'] = False
 			
-			Items.append( (update['timeNS'], update) )
+			Items.append( (update['date'], update) )
 
 			self.setItemlist(Items)
 
