@@ -85,8 +85,8 @@ class Firehose:
 			#print("show_notes: items:", alist)
 
 			for (ts,pItem) in alist:
+				time.sleep(self.delay)
 				#print("show_notes:: item:{} and {}".format( type(ts), type(pItem)))
-				time.sleep(5)
 				try:
 					#print("item SHOW:{} {}".format(ts, pItem))
 					show_note(self.screenshot, pItem)
@@ -101,7 +101,7 @@ class Firehose:
 			print("update...")
 			self.update()
 			#print("update sleep...")
-			time.sleep(self.delay)
+			time.sleep(self.delay/2)
 
 def getKeyVal(ofrom, key, default):
 	rv = default
@@ -188,7 +188,7 @@ def start_notes_build(tn, MO):
 	MO.start()
 
 
-MainObj = Firehose();
+MainObj = Firehose(delay=30);
 
 MainObj.setSources(Feeds)
 
