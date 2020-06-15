@@ -9,8 +9,8 @@ def get_login_data(fromFile, siteName):
 
 	sited = data.get(siteName)
 
-	#y = json.dumps(sited, indent=4)
-	#print(siteName, y)
+	y = json.dumps(sited, indent=4)
+	print(siteName, y)
 
 	return sited
 

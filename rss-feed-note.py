@@ -8,9 +8,12 @@ from bs4 import BeautifulSoup
 import feedparser
 import time
 from win10toast import ToastNotifier
-
+from plyer import notification
+import webbrowser
 
 # -------------------------------------------
+
+USE_PLYER = True
 
 Feeds = []
 
@@ -53,16 +56,24 @@ class Firehose:
 		return self._sources
 
 	def setItems(self, alist):
-		self.itemsAdded = alist
-		self.itemsAdded = sorted(alist, key=lambda x: x[0], reverse=False)
+		from operator import itemgetter
+		self.itemsAdded = sorted(alist, key=itemgetter(0), reverse=True)
 
 	def getItems(self):
-		self.itemsAdded = sorted(self.itemsAdded, key=lambda x: x[0], reverse=False)
+		from operator import itemgetter
+		self.itemsAdded = sorted(self.itemsAdded, key=itemgetter(0), reverse=True)
 		return self.itemsAdded
+
+	def dumpItems(self):
+		for itm in self.getItems():
+			ts = itm[0]
+			upditem = itm[1]
+			guid = upditem['guid']
+			print("- TS {}, guid: {}".format(ts, guid))
 
 	def update(self):
 		''' Update all sources. '''
-		alist = self.getItems()
+		alist = []
 		for source in self._sources:
 			try:
 				#print("--> items update {}".format(source))
@@ -73,10 +84,9 @@ class Firehose:
 			except Exception as e:
 				print("alist update problem: {}".format(e))
 				continue
-
 		self.setItems(alist)
-		#self.itemsAdded = sorted(self.itemsAdded, key=lambda x: x[0], reverse=False)
-
+		#self.dumpItems()
+		
 
 	def show_notes(self):
 		''' Update all items added. '''
@@ -109,7 +119,7 @@ class Firehose:
 						print("Cleaning up: {}".format(pItem['guid']))
 
 						self.guidsDeleted.append(pItem['guid'])
-						filePath = updateItem['tmpimage']
+						filePath = pItem['tmpimage']
 
 						if os.path.exists(filePath):
 							os.remove(filePath)
@@ -199,10 +209,29 @@ def show_note(screenshot, updateItem, toaster=toaster):
 	msgTitle = '''// {} //\n{}\n{}'''.format(siteName, categories, title)
 	msgBody = str(description) + str(published) +" <a href='"+ str(link) +"'>Link to news</a>"
 
+	global USE_PLYER
         # Show notification whenever needed
-	toaster.show_toast(msgTitle, msgBody, threaded=True, icon_path=thumbnailFP, duration=20)  # 3 seconds
+	if USE_PLYER:
+		msgTitle = msgTitle[0:60] + "..."
+		msgBody = msgBody[0:252] + "..."
+		notification.notify(
+		    title=msgTitle,
+		    message=msgBody,
+		    app_icon=thumbnailFP,  # e.g. 'C:\\icon_32x32.ico'
+		    timeout=20,  # seconds
+		 #   callback_clicked = lambda: self.item_clicked(link)
+		    )
+	else:
+		toaster.show_toast(msgTitle,
+					msgBody,
+					threaded=True,
+					icon_path=thumbnailFP,
+		#			callback_clicked = lambda: self.item_clicked(link)
+				)
 
-
+	def item_clicked(self, link):
+		print("Open browset to {}".format(link))
+		webbrowser.open(link)
 
 
 

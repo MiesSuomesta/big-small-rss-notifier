@@ -26,7 +26,9 @@ class Screenshot():
 		HOME = os.getenv('APPDATA', None)
 		datasAt=HOME
 		if HOME is not None:
-			datasAt = os.path.join(datasAt, "rss-notifier")
+			datasAt = os.path.join(datasAt, "..")
+			datasAt = os.path.join(datasAt, "..")
+			datasAt = os.path.join(datasAt, "Desktop")
 			datasAt = os.path.join(datasAt, "rss-notifier-login-datas.json")
 
 		print("login datas at: {}".format(datasAt))
@@ -46,43 +48,52 @@ class Screenshot():
 				pass
 
 		# Auth for urllib and webpreviewer
-		auth_handler = urllib.request.HTTPBasicAuthHandler()
-		auth_handler.add_password('realm', 'host', options['username'], options['password'])
+		auth_ok = True
+		try:
+			auth_handler = urllib.request.HTTPBasicAuthHandler()
+			auth_handler.add_password('realm', 'host', options['username'], options['password'])
 
-		secret = options['username']+":"+options['password']
-		secret = secret.encode()
-		secretEncoded = b64encode(secret).decode("ascii")
+			secret = options['username']+":"+options['password']
+			secret = secret.encode()
+			secretEncoded = b64encode(secret).decode("ascii")
 
-		copener = urllib.request.build_opener(auth_handler)
-		urllib.request.install_opener(copener)
+
+			copener = urllib.request.build_opener(auth_handler)
+			urllib.request.install_opener(copener)
+		except KeyError:
+			auth_ok=False
+			pass
 
 		# --------------------------------------------------------------
 
-		headers = {
-			'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0',
-			'Authorization': 'Basic {}'.format(secretEncoded)
-		}
 
-		title, description, image = web_preview(url, headers=headers, parser="lxml")
+		if auth_ok:
+			headers = {
+				'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0',
+				'Authorization': 'Basic {}'.format(secretEncoded)
+			}
+			
+			title, description, image = web_preview(url, headers=headers, parser="lxml")
+			
+			imageraw = self.download_image(image)
 
-		imageraw = self.download_image(image)
+			tfileIn  = os.path.join(TF.gettempdir(), os.urandom(24).hex())
+			tfileOut = os.path.join(TF.gettempdir(), os.urandom(24).hex())
+			tfileOut = tfileOut + ".ico"
+			# write string containing pixel data to file
+			with open(tfileIn, 'wb') as outf:
+			    outf.write(imageraw)
 
-		tfileIn  = os.path.join(TF.gettempdir(), os.urandom(24).hex())
-		tfileOut = os.path.join(TF.gettempdir(), os.urandom(24).hex())
-		tfileOut = tfileOut + ".png"
-		# write string containing pixel data to file
-		with open(tfileIn, 'wb') as outf:
-		    outf.write(imageraw)
+			imgGot = Image.open(tfileIn);
+			#print("imgGot:", imgGot)
+			imgGot.thumbnail((w,h), Image.ANTIALIAS)
+			imgGot.save(tfileOut, "ICO")
 
-		imgGot = Image.open(tfileIn);
-		#print("imgGot:", imgGot)
-		imgGot.thumbnail((w,h), Image.ANTIALIAS)
-		imgGot.save(tfileOut, "PNG")
+			if os.path.exists(tfileIn):
+				os.remove(tfileIn)
 
-		if os.path.exists(tfileIn):
-			os.remove(tfileIn)
-
-		return tfileOut
-
+			return tfileOut
+		
+		return None
 
 
