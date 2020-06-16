@@ -15,10 +15,14 @@ class Screenshot():
 
 	def download_image(self, url):
 		data = None
-		#print("url {} reading ...".format(url))
-		with urllib.request.urlopen(url) as response:
-			data = response.read()
-		#print("url {} read.".format(url))
+		try:
+			#print("url {} reading ...".format(url))
+			with urllib.request.urlopen(url) as response:
+				data = response.read()
+			#print("url {} read.".format(url))
+		except e:
+			print("url {} reading error {}".format(url, e))
+			pass
 		return data
 
 	def makeThumbnail(self, url, siteName, w, h, options=None):
@@ -67,20 +71,30 @@ class Screenshot():
 			
 			imageraw = self.download_image(image)
 
-			tfileIn  = os.path.join(TF.gettempdir(), os.urandom(24).hex())
-			tfileOut = os.path.join(TF.gettempdir(), os.urandom(24).hex())
-			tfileOut = tfileOut + ".ico"
-			# write string containing pixel data to file
-			with open(tfileIn, 'wb') as outf:
-			    outf.write(imageraw)
+			if imageraw is not None:
+				tfileIn  = os.path.join(TF.gettempdir(), os.urandom(24).hex())
+				tfileOut = os.path.join(TF.gettempdir(), os.urandom(24).hex())
 
-			imgGot = Image.open(tfileIn);
-			#print("imgGot:", imgGot)
-			imgGot.thumbnail((w,h), Image.ANTIALIAS)
-			imgGot.save(tfileOut, "ICO")
+				if sys.platform == "win32":
+					tfileOut = tfileOut + ".ico"
+				else:
+					tfileOut = tfileOut + ".png"
 
-			if os.path.exists(tfileIn):
-				os.remove(tfileIn)
+				# write string containing pixel data to file
+				with open(tfileIn, 'wb') as outf:
+				    outf.write(imageraw)
+
+				imgGot = Image.open(tfileIn);
+				#print("imgGot:", imgGot)
+				imgGot.thumbnail((w,h), Image.ANTIALIAS)
+
+				if sys.platform == "win32":
+					imgGot.save(tfileOut, "ICO")
+				else:
+					imgGot.save(tfileOut, "PNG")
+
+				if os.path.exists(tfileIn):
+					os.remove(tfileIn)
 
 			return tfileOut
 		

@@ -1,6 +1,6 @@
 import traceback
 import json, os, sys
-
+FILEPATH_SHOWN = False
 def get_login_data_file_path():
 
 	datasAt=""
@@ -15,7 +15,11 @@ def get_login_data_file_path():
 		HOME = os.getenv('HOME', None)
 		datasAt=HOME
 		datasAt = os.path.join(datasAt, ".rss-notifier-login-datas.json")
-	print("login datas at: {}".format(datasAt))
+
+	global FILEPATH_SHOWN
+	if not FILEPATH_SHOWN:
+		print("login datas at: {}".format(datasAt))
+		FILEPATH_SHOWN=True
 
 	return datasAt
 

@@ -142,6 +142,27 @@ class Firehose:
 #					continue
 			time.sleep(self.delay*2)
 
+	def cleanup_deleted_list(self):
+		''' Delete old guid from track items list. '''
+		while True:
+			time.sleep(24*60*60) # 24 tunnin välein
+			print("Cleaning up old list.. keeping 100, max")
+			alist = self.guidsDeleted
+			newlist = []
+			for upditem in range(0, 100):
+				if len(alist) > 0:
+					guid = alist.pop()
+					if guid is not None:
+						newlist.append(guid)
+					else:
+						break
+				else:
+					break
+			del alist
+			del self.guidsDeleted
+			self.guidsDeleted = newlist
+			print("{} GUID's saved".format(len(newlist)))
+
 	def start(self):
 		''' Start the firehose. '''
 		while True:
@@ -264,6 +285,10 @@ def show_note(screenshot, updateItem):
 
 import _thread
 
+
+def start_cleanup_deleted_list(tn, MO):
+	MO.cleanup_deleted_list()
+
 def start_notes_show(tn, MO):
 	MO.show_notes()
 
@@ -278,12 +303,14 @@ MainObj = Firehose(delay=30);
 
 MainObj.setSources(Feeds)
 
-_thread.start_new_thread(start_notes_show, 	('Note show',MainObj,))
-_thread.start_new_thread(start_notes_build, 	('Note build',MainObj,))
-_thread.start_new_thread(start_notes_cleaner, 	('Note cleaner',MainObj,))
+_thread.start_new_thread(start_notes_show, 		('Note show',MainObj,))
+_thread.start_new_thread(start_notes_build, 		('Note build',MainObj,))
+_thread.start_new_thread(start_notes_cleaner, 		('Note cleaner',MainObj,))
+_thread.start_new_thread(start_cleanup_deleted_list, 	('Guid list cleaner',MainObj,))
+
 
 while True:
 	#print("Sleep .........")
-	time.sleep(10);
+	time.sleep(1000);
 
 
