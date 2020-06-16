@@ -23,16 +23,7 @@ class Screenshot():
 
 	def makeThumbnail(self, url, siteName, w, h, options=None):
 
-		datasAt = os.getenv('HOME', None)
-		if datasAt is None:
-			datasAt = os.getenv('APPDATA', None)
-			datasAt = os.path.join(datasAt, "..")
-			datasAt = os.path.join(datasAt, "..")
-			datasAt = os.path.join(datasAt, "Desktop")
-			datasAt = os.path.join(datasAt, "rss-notifier-login-datas.json")
-		else:
-			datasAt = os.path.join(datasAt, ".rss-notifier-login-datas.json")
-
+		datasAt = LDM.get_login_data_file_path()
 		siteData = LDM.get_login_data(datasAt, siteName)
 
 		if options is None:
