@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 import logging
 import threading
 from os import path
+import os
 from time import sleep
 from pkg_resources import Requirement
 from pkg_resources import resource_filename
@@ -61,6 +62,7 @@ class WindowsBalloonNote(object):
     def __init__(self):
         """Initialize."""
         self._thread = None
+        self.classAtom = None
 
     @staticmethod
     def _decorator(func, callback=None):
@@ -91,10 +93,10 @@ class WindowsBalloonNote(object):
         # Register the window class.
         self.wc = WNDCLASS()
         self.hinst = self.wc.hInstance = GetModuleHandle(None)
-        self.wc.lpszClassName = str("PythonTaskbar")  # must be a string
+        self.wc.lpszClassName = str("PythonTaskbar" + os.urandom(24).hex())  # must be a string
         self.wc.lpfnWndProc = self._decorator(self.wnd_proc, self.user_cbFunc)  # could also specify a wndproc.
         try:
-            self.classAtom = RegisterClass(self.wc)
+             self.classAtom = RegisterClass(self.wc)
         except:
             pass #not sure of this
         style = WS_OVERLAPPED | WS_SYSMENU
@@ -159,6 +161,7 @@ class WindowsBalloonNote(object):
         if self._thread != None and self._thread.is_alive():
             # We have an active notification, let is finish we don't spam them
             return True
+
         return False
 
     def on_destroy(self, hwnd, msg, wparam, lparam):
@@ -169,6 +172,10 @@ class WindowsBalloonNote(object):
         :wparam:
         :lparam:
         """
+
+        # Give time to read
+        sleep(10)
+        
         nid = (self.hwnd, 0)
         Shell_NotifyIcon(NIM_DELETE, nid)
         PostQuitMessage(0)

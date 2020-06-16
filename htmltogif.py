@@ -1,4 +1,5 @@
 from PIL import Image
+import traceback
 import glob, os
 import logindatamanager as LDM
 import tempfile as TF
@@ -23,22 +24,14 @@ class Screenshot():
 
 	def makeThumbnail(self, url, siteName, w, h, options=None):
 
-		HOME = os.getenv('APPDATA', None)
-		datasAt=HOME
-		if HOME is not None:
-			datasAt = os.path.join(datasAt, "..")
-			datasAt = os.path.join(datasAt, "..")
-			datasAt = os.path.join(datasAt, "Desktop")
-			datasAt = os.path.join(datasAt, "rss-notifier-login-datas.json")
+		login_data_file = LDM.get_login_data_file_path()
 
-		print("login datas at: {}".format(datasAt))
-
-		siteData = LDM.get_login_data(datasAt, siteName)
+		siteData = LDM.get_login_data(login_data_file, siteName)
 
 		if options is None:
 			options = {}
 
-		print("Site login info:", siteData)
+		#print("Site login info:", siteData)
 
 		if siteData is not None:
 			try:
@@ -61,7 +54,7 @@ class Screenshot():
 			copener = urllib.request.build_opener(auth_handler)
 			urllib.request.install_opener(copener)
 		except KeyError:
-			auth_ok=False
+			auth_ok = False
 			pass
 
 		# --------------------------------------------------------------

@@ -6,8 +6,6 @@ import json
 import re
 import time
 import tempfile as TF
-
-
 from bs4 import BeautifulSoup
 import feedparser
 import time

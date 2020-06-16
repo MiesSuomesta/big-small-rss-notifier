@@ -8,9 +8,11 @@ from bs4 import BeautifulSoup
 import feedparser
 import time
 #from win10toast import ToastNotifier
-from plyer import notification
+
 import webbrowser
-from windows_balloon_note import *
+
+if sys.platform == "win32":
+    from windows_balloon_note import *
 
 # -------------------------------------------
 
@@ -161,8 +163,9 @@ def getKeyVal(ofrom, key, default):
 def show_note(screenshot, updateItem):
 
 	def show_note_item_clicked(obj):
-		print("Open browset to {}".format(obj))
-		webbrowser.open(obj)
+		if sys.platform == "win32":
+			print("Open browset to {}".format(obj))
+			webbrowser.open(obj)
 
 	#print("show_note:: RAW: {}".format(updateItem))
 
@@ -223,8 +226,6 @@ def show_note(screenshot, updateItem):
 
 	msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
 	msgBody = str(description) + str(published)
-
-
 
 	global USE_PLYER
         # Show notification whenever needed
