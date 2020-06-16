@@ -11,6 +11,10 @@ import tempfile as TF
 from bs4 import BeautifulSoup
 import feedparser
 import time
+from base64 import b64encode
+import urllib
+import urllib.request
+
 
 
 #class Source:
@@ -87,6 +91,7 @@ class RssFeed():
 
 			if not self.filter(entry):
 				continue
+
 
 			update = {}
 			update['guid'] = entryGuid

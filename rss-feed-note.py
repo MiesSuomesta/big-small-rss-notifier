@@ -11,6 +11,7 @@ import re
 import time
 #from htmltogif import *
 import tempfile as TF
+from tinyurl import *
 
 if sys.platform == "win32":
 	from windows_balloon_note import *
@@ -217,6 +218,8 @@ def show_note(screenshot, updateItem):
 
 	category = ""
 
+	link = TinyUrl.mkShortUrl(link)
+
 	if tags is not None:
 		if tags[0] is not None:
 			if 'term' in tags[0]:
@@ -265,7 +268,11 @@ def show_note(screenshot, updateItem):
 			description = description + "\n"
 
 		msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
-		msgBody = str(description) + str(published) +" <a href='"+ str(link) +"'>Link to news</a>"
+		msgBody = str(description) + str(published) +" <a href='"+ link +"'>Link to news</a>"
+		
+		encodeto='UTF-8'
+		msgTitle.encode(encodeto)
+		msgBody.encode(encodeto)
 
 		note = Notify.Notification.new(msgTitle, msgBody, "dialog-information")
 

@@ -72,14 +72,14 @@ class Screenshot():
 			imageraw = self.download_image(image)
 
 			if imageraw is not None:
-				tfileIn  = os.path.join(TF.gettempdir(), os.urandom(24).hex())
-				tfileOut = os.path.join(TF.gettempdir(), os.urandom(24).hex())
-
 				prefix="rss-feed-img-"
+				tfileIn  = os.path.join(TF.gettempdir(), prefix + os.urandom(24).hex())
+				tfileOut = os.path.join(TF.gettempdir(), prefix + os.urandom(24).hex())
+
 				if sys.platform == "win32":
-					tfileOut = prefix + tfileOut + ".ico"
+					tfileOut = tfileOut + ".ico"
 				else:
-					tfileOut = prefix + tfileOut + ".png"
+					tfileOut = ".png"
 
 				# write string containing pixel data to file
 				with open(tfileIn, 'wb') as outf:
