@@ -92,7 +92,7 @@ class RssFeed():
 			update['timeNS'] = time.monotonic_ns()
 			update['source'] = self.SOURCE
 			update['shown'] = False
-			
+				
 			Items.append( (update['date'], update) )
 
 			self.setItemlist(Items)
