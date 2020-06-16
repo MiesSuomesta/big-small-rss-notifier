@@ -24,9 +24,11 @@ else:
 # -------------------------------------------
 
 Feeds = []
-feedconfig = feedconfig_get_data()
-print(feedconfig)
 
+feedconfig = feedconfig_get_data()
+if feedconfig is not None:
+	print("Configuration parsed ok")
+	
 for fciSiteName in feedconfig.keys():
     fciSiteData = feedconfig.get(fciSiteName)
     if 'feeds' in fciSiteData:
@@ -174,9 +176,6 @@ def getKeyVal(ofrom, key, default):
 	#print("{} {} -> {}".format(type(ofrom), key, rv))
 	return rv
 
-# One-time initialization
-#toaster = ToastNotifier()
-
 def show_note(screenshot, updateItem):
 
 	def show_note_item_clicked(obj):
@@ -186,8 +185,8 @@ def show_note(screenshot, updateItem):
 
 	#print("show_note:: RAW: {}".format(updateItem))
 
-	rawEntry 	= getKeyVal(updateItem, 'rawEntry', None)
-	siteData    = getKeyVal(updateItem, 'siteData', None)
+	rawEntry = getKeyVal(updateItem, 'rawEntry', None)
+	siteData = getKeyVal(updateItem, 'siteData', None)
 
 	#y = json.dumps(rawEntry, indent=4)
 	#print(y)
@@ -235,16 +234,22 @@ def show_note(screenshot, updateItem):
 
 		msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
 		msgBody = str(description) + str(published)
+		
+		
+		
+		try:
+			wbn = WindowsBalloonNote()
 
-		wbn = WindowsBalloonNote()
-
-		wbn.show_toast(msgTitle,
+			wbn.show_toast(msgTitle,
 					msgBody,
 					threaded=True,
 					icon_path=thumbnailFP,
 					cbFunc = show_note_item_clicked,
 				        cbArgs = link
 				)
+		except:
+			pass
+
 		updateItem['tmpimage'] = thumbnailFP
 	else: # not windows
 		if len(categories) > 0:
@@ -262,22 +267,24 @@ def show_note(screenshot, updateItem):
 		msgTitle.encode(encodeto)
 		msgBody.encode(encodeto)
 
-		note = Notify.Notification.new(msgTitle, msgBody, "dialog-information")
+		try:
+			note = Notify.Notification.new(msgTitle, msgBody, "dialog-information")
 
-		image = None
-		updateItem['tmpimage'] = None
-		if thumbnailFP is not None:
-			try:
-				image = GdkPixbuf.Pixbuf.new_from_file(thumbnailFP)
-				updateItem['tmpimage'] = thumbnailFP
-			except:
-				pass
+			image = None
+			if thumbnailFP is not None:
+				try:
+					image = GdkPixbuf.Pixbuf.new_from_file(thumbnailFP)
+					updateItem['tmpimage'] = thumbnailFP
+				except:
+					pass
 
-			finally:
-				if image is not None:
-					note.set_image_from_pixbuf(image)
+				finally:
+					if image is not None:
+						note.set_image_from_pixbuf(image)
 
-		note.show()
+			note.show()
+		except:
+			pass
 
 
 # ------------ MAIN THREADS ------------------------------------------

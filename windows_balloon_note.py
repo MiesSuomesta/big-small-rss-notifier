@@ -107,6 +107,8 @@ class WindowsBalloonNote(object):
         UpdateWindow(self.hwnd)
 
         # icon
+        hicon = None
+	
         if icon_path is not None:
             icon_path = path.realpath(icon_path)
             icon_flags = LR_LOADFROMFILE 
