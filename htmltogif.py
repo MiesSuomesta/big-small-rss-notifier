@@ -20,7 +20,7 @@ class Screenshot():
 			with urllib.request.urlopen(url) as response:
 				data = response.read()
 			#print("url {} read.".format(url))
-		except e:
+		except Exception as e:
 			print("url {} reading error {}".format(url, e))
 			pass
 		return data
