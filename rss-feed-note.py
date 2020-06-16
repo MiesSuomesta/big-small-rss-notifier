@@ -190,6 +190,7 @@ def show_note(screenshot, updateItem):
 	description 	= getKeyVal(rawEntry, 'description', None)
 	siteName 	= getKeyVal(updateItem, 'siteName', None)
 
+	category = ""
 
 	if tags is not None:
 		if tags[0] is not None:
