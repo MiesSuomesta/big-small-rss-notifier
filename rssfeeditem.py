@@ -123,7 +123,10 @@ def clean_html(raw):
 
 def _extract_body(entry):
 	texts = []
-	texts.append(entry['summary'])
+
+	if 'summary' in entry:
+		texts.append(entry['summary'])
+
 	# some publications put the whole article so we search for the true summary
 	# by looking for the shortest text/html content if multiple exist.
 	if 'content' in entry:
@@ -131,20 +134,31 @@ def _extract_body(entry):
 			if content['type'] == 'text/html':
 				texts.append(content['value'])
 		texts.sort(key=lambda x: len(x))
-	return texts[0]
+
+	retval = ''
+
+	if len(texts) > 0:
+		retval = texts[0]
+
+	return retval
 
 def _extract_thumb(entry):
 	if 'media_thumbnail' in entry and len(entry['media_thumbnail']) > 0:
 		return entry['media_thumbnail'][0]['url']
+
 	if 'media_content' in entry and len(entry['media_content']) > 0:
 		return entry['media_content'][0]['url']
+
 	if 'links' in entry and len(entry['links']) > 0:
 		imgs = [x for x in entry['links'] if 'image' in x['type']]
+
 	if len(imgs) > 0:
 		return imgs[0]['href']
-	soup = BeautifulSoup(entry['summary'], 'html.parser')
-	img = soup.find('img')
-	if img:
-		return img['src']
-	return None
+	retval = None
+	if 'summary' in entry:
+		soup = BeautifulSoup(entry['summary'], 'html.parser')
+		img = soup.find('img')
+		if img:
+			retval = img['src']
+	return retval
 

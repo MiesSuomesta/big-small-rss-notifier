@@ -44,7 +44,11 @@ Feeds.append( RssFeed('iltasanomat', "https://www.is.fi/rss/tuoreimmat.xml") )
 Feeds.append( RssFeed('iltasanomat', "https://www.is.fi/rss/viihde.xml") )
 Feeds.append( RssFeed('iltasanomat', "https://www.is.fi/rss/elokuvat.xml") )
 
+# Kyberturvallisuuskeskus
+Feeds.append( RssFeed('kyberturvallisuuskeskus', "https://www.kyberturvallisuuskeskus.fi/feed/rss/fi") )
 
+# verohallinto
+Feeds.append( RssFeed('verohallinto', "https://www.vero.fi/api/rss/news/fi") )
 
 class Firehose:
 	def __init__(self, out=sys.stdout, delay=5.0):
@@ -232,7 +236,26 @@ def show_note(screenshot, updateItem):
 
 			categories = categories + comma + cat
 
-	if not sys.platform == "win32":
+	if sys.platform == "win32":
+		msgTitle = '''// {} //\n{}\n{}'''.format(siteName, categories, title)
+
+		if (len(siteName) + len(categories)) < 40:
+			msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
+
+		msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
+		msgBody = str(description) + str(published)
+
+		wbn = WindowsBalloonNote()
+
+		wbn.show_toast(msgTitle,
+					msgBody,
+					threaded=True,
+					icon_path=thumbnailFP,
+					cbFunc = show_note_item_clicked,
+				        cbArgs = link
+				)
+
+	else: # not windows
 		if len(categories) > 0:
 			categories = categories + ":"
 
@@ -260,24 +283,6 @@ def show_note(screenshot, updateItem):
 					note.set_image_from_pixbuf(image)
 
 		note.show()
-	else: # windows
-		msgTitle = '''// {} //\n{}\n{}'''.format(siteName, categories, title)
-
-		if (len(siteName) + len(categories)) < 40:
-			msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
-
-		msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
-		msgBody = str(description) + str(published)
-
-		wbn = WindowsBalloonNote()
-
-		wbn.show_toast(msgTitle,
-					msgBody,
-					threaded=True,
-					icon_path=thumbnailFP,
-					cbFunc = show_note_item_clicked,
-				        cbArgs = link
-				)
 
 
 

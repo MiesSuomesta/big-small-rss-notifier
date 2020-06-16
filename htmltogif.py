@@ -75,10 +75,11 @@ class Screenshot():
 				tfileIn  = os.path.join(TF.gettempdir(), os.urandom(24).hex())
 				tfileOut = os.path.join(TF.gettempdir(), os.urandom(24).hex())
 
+				prefix="rss-feed-img-"
 				if sys.platform == "win32":
-					tfileOut = tfileOut + ".ico"
+					tfileOut = prefix + tfileOut + ".ico"
 				else:
-					tfileOut = tfileOut + ".png"
+					tfileOut = prefix + tfileOut + ".png"
 
 				# write string containing pixel data to file
 				with open(tfileIn, 'wb') as outf:
