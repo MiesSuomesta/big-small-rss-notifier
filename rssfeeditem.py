@@ -8,7 +8,6 @@ import time
 import tempfile as TF
 from bs4 import BeautifulSoup
 import feedparser
-import time
 from base64 import b64encode
 import urllib
 import urllib.request
@@ -16,7 +15,7 @@ import urllib.request
 class RssFeed():
 
 
-	def __init__(self, pSiteName, pUrl):
+	def __init__(self, pSiteName, pUrl, siteData):
 	
 		self.SOURCE = pSiteName+':'+ pUrl
 		self.timestamp = time.monotonic_ns()
@@ -25,6 +24,7 @@ class RssFeed():
 		self.info['url'] = pUrl;
 		self.info['siteName'] = pSiteName
 		self.info['siteIcon'] = None;
+		self.info['siteData'] = siteData;
 		self.Itemlist = []
 
 	def getInfo(self):
@@ -77,6 +77,7 @@ class RssFeed():
 			update['guid'] = entryGuid
 			update['siteName'] = self.info['siteName']
 			update['siteIcon'] = self.info['siteIcon']
+			update['siteData'] = self.info['siteData']
 			update['siteUrl'] = self.info['url']
 			update['rawEntry'] = entry
 			update['cleantitle'] = clean_html(entry['title'])

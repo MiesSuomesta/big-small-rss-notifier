@@ -3,7 +3,7 @@ import sys
 
 from rssfeeditem import *
 from htmltogif import *
-
+from feedconfigdatamanager import *
 from bs4 import BeautifulSoup
 import feedparser
 import time
@@ -23,33 +23,17 @@ else:
 
 # -------------------------------------------
 
-USE_PLYER = False
-
 Feeds = []
+feedconfig = feedconfig_get_data()
+print(feedconfig)
 
-# Kauppalehti
-Feeds.append( RssFeed('kauppalehti', "https://feeds.kauppalehti.fi/rss/main") )
-Feeds.append( RssFeed('kauppalehti', "https://feeds.kauppalehti.fi/rss/klnyt") )
+for fciSiteName in feedconfig.keys():
+    fciSiteData = feedconfig.get(fciSiteName)
+    if 'feeds' in fciSiteData:
+        for fciSiteFeed in fciSiteData.get('feeds'):
+            Feeds.append( RssFeed(fciSiteName, fciSiteFeed, fciSiteData) )
+            print("Added {} feed {} to be monitored".format(fciSiteName,fciSiteFeed))
 
-# Yle
-Feeds.append( RssFeed('yle', "https://feeds.yle.fi/uutiset/v1/recent.rss?publisherIds=YLE_UUTISET") )
-Feeds.append( RssFeed('yle', "https://feeds.yle.fi/uutiset/v1/majorHeadlines/YLE_UUTISET.rss") )
-
-# Kaleva
-Feeds.append( RssFeed('kaleva', "https://www.kaleva.fi/feedit/rss/managed-listing/rss-uusimmat/") )
-Feeds.append( RssFeed('kaleva', "https://www.kaleva.fi/feedit/rss/managed-listing/kotimaa/") )
-Feeds.append( RssFeed('kaleva', "https://www.kaleva.fi/feedit/rss/managed-listing/ulkomaat/") )
-
-# Iltasanomat
-Feeds.append( RssFeed('iltasanomat', "https://www.is.fi/rss/tuoreimmat.xml") )
-Feeds.append( RssFeed('iltasanomat', "https://www.is.fi/rss/viihde.xml") )
-Feeds.append( RssFeed('iltasanomat', "https://www.is.fi/rss/elokuvat.xml") )
-
-# Kyberturvallisuuskeskus
-Feeds.append( RssFeed('kyberturvallisuuskeskus', "https://www.kyberturvallisuuskeskus.fi/feed/rss/fi") )
-
-# verohallinto
-Feeds.append( RssFeed('verohallinto', "https://www.vero.fi/api/rss/news/fi") )
 
 class Firehose:
 	def __init__(self, out=sys.stdout, delay=5.0):
@@ -135,8 +119,9 @@ class Firehose:
 						self.guidsDeleted.append(pItem['guid'])
 						filePath = pItem['tmpimage']
 
-						if os.path.exists(filePath):
-							os.remove(filePath)
+						if filePath is not None:
+							if os.path.exists(filePath):
+								os.remove(filePath)
 
 						alist.remove( upditem )
 						self.setItems(alist)
@@ -202,6 +187,7 @@ def show_note(screenshot, updateItem):
 	#print("show_note:: RAW: {}".format(updateItem))
 
 	rawEntry 	= getKeyVal(updateItem, 'rawEntry', None)
+	siteData    = getKeyVal(updateItem, 'siteData', None)
 
 	#y = json.dumps(rawEntry, indent=4)
 	#print(y)
@@ -216,7 +202,7 @@ def show_note(screenshot, updateItem):
 	link 		= getKeyVal(rawEntry, 'link', None)
 	thumb 		= getKeyVal(rawEntry, 'thumb', None)
 	published 	= getKeyVal(rawEntry, 'published', None)
-	description 	= getKeyVal(rawEntry, 'description', None)
+	description = getKeyVal(rawEntry, 'description', None)
 	siteName 	= getKeyVal(updateItem, 'siteName', None)
 
 	category="News from " + siteName
@@ -227,8 +213,8 @@ def show_note(screenshot, updateItem):
 
 	link = TinyUrl.mkShortUrl(link)
 
-	thumbnailFP = screenshot.makeThumbnail(link, siteName, 150, 100)
-
+	thumbnailFP = screenshot.makeThumbnail(link, siteName, siteData, 150, 100)
+	
 	categories = category
 
 	if isinstance(category, list):
@@ -259,7 +245,7 @@ def show_note(screenshot, updateItem):
 					cbFunc = show_note_item_clicked,
 				        cbArgs = link
 				)
-
+		updateItem['tmpimage'] = thumbnailFP
 	else: # not windows
 		if len(categories) > 0:
 			categories = categories + ":"
@@ -294,11 +280,8 @@ def show_note(screenshot, updateItem):
 		note.show()
 
 
-
-
-
+# ------------ MAIN THREADS ------------------------------------------
 import _thread
-
 
 def start_cleanup_deleted_list(tn, MO):
 	MO.cleanup_deleted_list()
