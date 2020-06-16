@@ -72,14 +72,14 @@ class RssFeed():
 			entryGuid = entry['guid']
 
 			if entryGuid in Items:
-				print("guid exists..")
+				#print("guid exists..")
 				continue
 			#else:
                         #        print("guid {}".format(entryGuid))
 				
 
 			if entryGuid in deletedGuids:
-				print("guid already shown: {}".format(entryGuid))
+				#print("guid already shown: {}".format(entryGuid))
 				continue
 			#else:
                         #        print("guid {}".format(entryGuid))

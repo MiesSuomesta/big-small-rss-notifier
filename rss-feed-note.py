@@ -7,13 +7,22 @@ from htmltogif import *
 from bs4 import BeautifulSoup
 import feedparser
 import time
-from win10toast import ToastNotifier
-from plyer import notification
-import webbrowser
+import re
+import time
+#from htmltogif import *
+import tempfile as TF
+
+if sys.platform == "win32":
+	from windows_balloon_note import *
+	import webbrowser
+else:
+	import gi
+	gi.require_version('Notify', '0.7')
+	from gi.repository import Notify, GdkPixbuf
+
+Notify.init("Notifier")
 
 # -------------------------------------------
-
-USE_PLYER = True
 
 Feeds = []
 
@@ -94,7 +103,7 @@ class Firehose:
 			#print("show_notes: items:", alist)
 
 			for (ts,pItem) in self.getItems():
-				time.sleep(self.delay)
+				time.sleep(self.delay/4)
 				#print("show_notes:: item:{} and {}".format( type(ts), type(pItem)))
 				#try:
 					#print("item SHOW:{} {}".format(ts, pItem))
@@ -154,10 +163,12 @@ def getKeyVal(ofrom, key, default):
 	#print("{} {} -> {}".format(type(ofrom), key, rv))
 	return rv
 
-# One-time initialization
-toaster = ToastNotifier()
+def show_note(screenshot, updateItem):
 
-def show_note(screenshot, updateItem, toaster=toaster):
+	def show_note_item_clicked(obj):
+		if sys.platform == "win32":
+			print("Open browset to {}".format(obj))
+			webbrowser.open(obj)
 
 	#print("show_note:: RAW: {}".format(updateItem))
 
@@ -180,11 +191,12 @@ def show_note(screenshot, updateItem, toaster=toaster):
 	siteName 	= getKeyVal(updateItem, 'siteName', None)
 
 
-	category = tags[0]['term']
+	if tags is not None:
+		if tags[0] is not None:
+			if 'term' in tags[0]:
+				category = tags[0]['term']
 
 	thumbnailFP = screenshot.makeThumbnail(link, siteName, 150, 100)
-
-	updateItem['tmpimage'] = thumbnailFP
 
 	categories = category
 
@@ -198,42 +210,51 @@ def show_note(screenshot, updateItem, toaster=toaster):
 
 			categories = categories + comma + cat
 
-	if len(categories) > 0:
-		categories = categories + ":"
+	if not sys.platform == "win32":
+		if len(categories) > 0:
+			categories = categories + ":"
 
-	if description is None:
-		description = ""
-	else:
-		description = description + "\n"
+		if description is None:
+			description = ""
+		else:
+			description = description + "\n"
 
-	msgTitle = '''// {} //\n{}\n{}'''.format(siteName, categories, title)
-	msgBody = str(description) + str(published) +" <a href='"+ str(link) +"'>Link to news</a>"
+		msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
+		msgBody = str(description) + str(published) +" <a href='"+ str(link) +"'>Link to news</a>"
 
-	def item_clicked(self, updateItem):
-		print("Open browset to {}".format(link))
-		webbrowser.open(link)
+		note = Notify.Notification.new(msgTitle, msgBody, "dialog-information")
 
+		image = None
+		updateItem['tmpimage'] = None
+		if thumbnailFP is not None:
+			try:
+				image = GdkPixbuf.Pixbuf.new_from_file(thumbnailFP)
+				updateItem['tmpimage'] = thumbnailFP
+			except:
+				pass
 
-	global USE_PLYER
-        # Show notification whenever needed
-	if USE_PLYER:
-		msgTitle = msgTitle[0:60] + "..."
-		msgBody = msgBody[0:252] + "..."
-		notification.notify(
-			title=msgTitle,
-			message=msgBody,
-			app_icon=thumbnailFP,  # e.g. 'C:\\icon_32x32.ico'
-			timeout=20,  # seconds
-			callback_clicked = item_clicked,
-			callback_arg = link
-		    )
-	else:
-		toaster.show_toast(msgTitle,
+			finally:
+				if image is not None:
+					note.set_image_from_pixbuf(image)
+
+		note.show()
+	else: # windows
+		msgTitle = '''// {} //\n{}\n{}'''.format(siteName, categories, title)
+
+		if (len(siteName) + len(categories)) < 40:
+			msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
+
+		msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
+		msgBody = str(description) + str(published)
+
+		wbn = WindowsBalloonNote()
+
+		wbn.show_toast(msgTitle,
 					msgBody,
 					threaded=True,
 					icon_path=thumbnailFP,
-					callback_clicked = self.item_clicked,
-					callback_arg = updateItem
+					cbFunc = show_note_item_clicked,
+				        cbArgs = link
 				)
 
 
@@ -252,7 +273,7 @@ def start_notes_cleaner(tn, MO):
 	MO.cleaner()
 
 
-MainObj = Firehose(delay=10);
+MainObj = Firehose(delay=30);
 
 MainObj.setSources(Feeds)
 
