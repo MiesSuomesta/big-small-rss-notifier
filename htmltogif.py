@@ -1,5 +1,4 @@
 from PIL import Image
-import traceback
 import glob, os
 import logindatamanager as LDM
 import tempfile as TF
@@ -31,11 +30,10 @@ class Screenshot():
 		datasAt = LDM.get_login_data_file_path()
 		siteData = LDM.get_login_data(datasAt, siteName)
 
-
 		if options is None:
 			options = {}
 
-		#print("Site login info:", siteData)
+		#print("siteData", siteData)
 
 		if siteData is not None:
 			try:
@@ -73,6 +71,9 @@ class Screenshot():
 			
 			imageraw = self.download_image(image)
 
+
+			tfileOut = None
+
 			if imageraw is not None:
 				prefix="rss-feed-img-"
 				tfileIn  = os.path.join(TF.gettempdir(), prefix + os.urandom(24).hex())
@@ -101,6 +102,5 @@ class Screenshot():
 
 			return tfileOut
 		
-		return None
 
 
