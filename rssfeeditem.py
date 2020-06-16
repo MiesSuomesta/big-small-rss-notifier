@@ -6,32 +6,12 @@ import json
 import re
 import time
 import tempfile as TF
-
-
 from bs4 import BeautifulSoup
 import feedparser
 import time
 from base64 import b64encode
 import urllib
 import urllib.request
-
-
-
-#class Source:
-#
-#    '''
-#    A Source implements an .update() method which scrapes articles from a single
-#    source and pushes them to a Stream.
-#    '''
-#
-#    def __init__(self, stream=None):
-#        if stream is None:
-#            stream = Stream()
-#        self.stream = stream
-#
-#   def update(self):
-#        raise NotImplementedError
-
 
 class RssFeed():
 
@@ -159,6 +139,7 @@ def _extract_thumb(entry):
 
 	if len(imgs) > 0:
 		return imgs[0]['href']
+
 	retval = None
 	if 'summary' in entry:
 		soup = BeautifulSoup(entry['summary'], 'html.parser')

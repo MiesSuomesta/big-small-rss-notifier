@@ -1,4 +1,5 @@
 from PIL import Image
+import traceback
 import glob, os
 import logindatamanager as LDM
 import tempfile as TF
@@ -30,10 +31,11 @@ class Screenshot():
 		datasAt = LDM.get_login_data_file_path()
 		siteData = LDM.get_login_data(datasAt, siteName)
 
+
 		if options is None:
 			options = {}
 
-		#print("siteData", siteData)
+		#print("Site login info:", siteData)
 
 		if siteData is not None:
 			try:

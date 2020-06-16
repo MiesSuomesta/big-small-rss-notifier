@@ -9,7 +9,6 @@ import feedparser
 import time
 import re
 import time
-#from htmltogif import *
 import tempfile as TF
 from tinyurl import *
 
@@ -20,10 +19,11 @@ else:
 	import gi
 	gi.require_version('Notify', '0.7')
 	from gi.repository import Notify, GdkPixbuf
-
-Notify.init("Notifier")
+	Notify.init("Notifier")
 
 # -------------------------------------------
+
+USE_PLYER = False
 
 Feeds = []
 
@@ -108,7 +108,7 @@ class Firehose:
 			#print("show_notes: items:", alist)
 
 			for (ts,pItem) in self.getItems():
-				time.sleep(self.delay/4)
+				time.sleep(self.delay/8)
 				#print("show_notes:: item:{} and {}".format( type(ts), type(pItem)))
 				#try:
 					#print("item SHOW:{} {}".format(ts, pItem))
@@ -130,7 +130,7 @@ class Firehose:
 				(ts,pItem) = upditem
 				if 'shown' in pItem:
 					if pItem['shown']:
-						print("Cleaning up: {}".format(pItem['guid']))
+						#print("Cleaning up: {}".format(pItem['guid']))
 
 						self.guidsDeleted.append(pItem['guid'])
 						filePath = pItem['tmpimage']
@@ -189,6 +189,9 @@ def getKeyVal(ofrom, key, default):
 	#print("{} {} -> {}".format(type(ofrom), key, rv))
 	return rv
 
+# One-time initialization
+#toaster = ToastNotifier()
+
 def show_note(screenshot, updateItem):
 
 	def show_note_item_clicked(obj):
@@ -216,14 +219,13 @@ def show_note(screenshot, updateItem):
 	description 	= getKeyVal(rawEntry, 'description', None)
 	siteName 	= getKeyVal(updateItem, 'siteName', None)
 
-	category = ""
-
-	link = TinyUrl.mkShortUrl(link)
-
+	category="News from " + siteName
 	if tags is not None:
 		if tags[0] is not None:
 			if 'term' in tags[0]:
 				category = tags[0]['term']
+
+	link = TinyUrl.mkShortUrl(link)
 
 	thumbnailFP = screenshot.makeThumbnail(link, siteName, 150, 100)
 
