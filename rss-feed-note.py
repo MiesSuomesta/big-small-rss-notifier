@@ -100,7 +100,7 @@ class Firehose:
 				time.sleep(self.delay/3)
 				#print("show_notes:: item:{} and {}".format( type(ts), type(pItem)))
 				try:
-					print("item SHOW:{} {}".format(ts, pItem))
+					#print("item SHOW:{} {}".format(ts, pItem))
 					show_note(self.screenshot, pItem)
 					pItem['shown'] = True;
 				except:
