@@ -18,3 +18,4 @@ class TinyUrl():
 		except:
 			traceback.print_exc(file=sys.stdout)
 		return None
+

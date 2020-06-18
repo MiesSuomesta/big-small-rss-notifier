@@ -148,3 +148,4 @@ def _extract_thumb(entry):
 			retval = img['src']
 	return retval
 
+

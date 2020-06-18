@@ -99,6 +99,7 @@ class Firehose:
 				#print("alist items updated: {}".format(alist))
 			except:
 				print("alist update problem: {}".format(e))
+				traceback.print_exc(file=sys.stdout)
 				continue
 		self.setItems(alist)
 		#self.dumpItems()
@@ -110,16 +111,17 @@ class Firehose:
 			#print("show_notes: items:", alist)
 
 			for (ts,pItem) in self.getItems():
-				time.sleep(self.delay/8)
+				time.sleep(self.delay/3)
 				#print("show_notes:: item:{} and {}".format( type(ts), type(pItem)))
-				#try:
-					#print("item SHOW:{} {}".format(ts, pItem))
-				show_note(self.screenshot, pItem)
-				pItem['shown'] = True;
-				#except Exception as e:
-				#	print("item show problem: {}".format(e))
-				#	continue
-			time.sleep(5)
+				try:
+					print("item SHOW:{} {}".format(ts, pItem))
+					show_note(self.screenshot, pItem)
+					pItem['shown'] = True;
+				except:
+					print("item show problem: {}".format(e))
+					traceback.print_exc(file=sys.stdout)
+					continue
+			time.sleep(15)
 
 	def cleanup(self):
 		''' Update all items added. '''
@@ -186,7 +188,7 @@ class Firehose:
 				print("update...")
 				self.update()
 			#print("update sleep...")
-			time.sleep(self.delay/4)
+			time.sleep(self.delay/8)
 
 	def cleaner(self):
 		''' Start the firehose. '''
@@ -263,7 +265,7 @@ def show_note(screenshot, updateItem):
 		msgBody = str(description) + str(published)
 
 		wbn = WindowsBalloonNote()
-
+		#print("show_note:: windows")
 		wbn.show_toast(msgTitle,
 					msgBody,
 					threaded=True,
@@ -303,6 +305,7 @@ def show_note(screenshot, updateItem):
 				if image is not None:
 					note.set_image_from_pixbuf(image)
 
+		#print("show_note:: linux: ")
 		note.show()
 
 
@@ -338,5 +341,6 @@ _thread.start_new_thread(start_cleanup_deleted_list, 	('Guid list cleaner',MainO
 while True:
 	#print("Sleep .........")
 	time.sleep(1000);
+
 
 

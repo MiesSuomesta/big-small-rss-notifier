@@ -190,3 +190,4 @@ class WindowsBalloonNote(object):
                 self.on_destroy(hwnd, msg, wparam, lparam)
         elif lparam == PARAM_DESTROY:
             self.on_destroy(hwnd, msg, wparam, lparam)
+
