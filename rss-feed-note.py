@@ -137,7 +137,7 @@ class Firehose:
 							alist = self.getItems()
 							del pItem;
 				except:
-					print("item cleanup problem: {}".format(e))
+					print("item cleanup problem")
 					traceback.print_exc(file=sys.stdout)
 			self.cleaner_running = False
 			time.sleep(self.delay*2)
