@@ -109,9 +109,8 @@ class WindowsBalloonNote(object):
         # icon
         if icon_path is not None:
             icon_path = path.realpath(icon_path)
-        else:
-            icon_path =  resource_filename(Requirement.parse("win10toast"), "win10toast/data/python.ico")
-        icon_flags = LR_LOADFROMFILE 
+            icon_flags = LR_LOADFROMFILE 
+
         try:
             hicon = LoadImage(self.hinst, icon_path,
                               IMAGE_ICON, 0, 0, icon_flags)

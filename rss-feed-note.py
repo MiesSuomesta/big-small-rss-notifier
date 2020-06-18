@@ -4,6 +4,7 @@ import sys
 from rssfeeditem import *
 from htmltogif import *
 
+import traceback
 from bs4 import BeautifulSoup
 import feedparser
 import time
@@ -62,6 +63,7 @@ class Firehose:
 		self._sources = []
 		self.itemsAdded = []
 		self.guidsDeleted = []
+		self.cleaner_running = False
 
 	def setSources(self, feeds):
 		self._sources = feeds
@@ -95,7 +97,7 @@ class Firehose:
 				#print("items updated:", source.getItemlist())
 				alist.extend(source.getItemlist())
 				#print("alist items updated: {}".format(alist))
-			except Exception as e:
+			except:
 				print("alist update problem: {}".format(e))
 				continue
 		self.setItems(alist)
@@ -124,33 +126,41 @@ class Firehose:
 		while True:
 			time.sleep(self.delay*2)
 			print("Cleaning up............")		
+			while self.cleaner_running:
+				time.sleep(10)
+			self.cleaner_running = True
 			alist = self.getItems()
 			for upditem in alist:
-#				#try:
-				(ts,pItem) = upditem
-				if 'shown' in pItem:
-					if pItem['shown']:
-						#print("Cleaning up: {}".format(pItem['guid']))
+				try:
+					(ts,pItem) = upditem
+					if 'shown' in pItem:
+						if pItem['shown']:
+							#print("Cleaning up: {}".format(pItem['guid']))
 
-						self.guidsDeleted.append(pItem['guid'])
-						filePath = pItem['tmpimage']
+							self.guidsDeleted.append(pItem['guid'])
+							filePath = pItem['tmpimage']
 
-						if os.path.exists(filePath):
-							os.remove(filePath)
+							if filePath is not None:
+								if os.path.exists(filePath):
+									os.remove(filePath)
 
-						alist.remove( upditem )
-						self.setItems(alist)
-						alist = self.getItems()
-						del pItem;
-#				except Exception as e:
-#					print("item cleanup problem: {}".format(e))
-#					continue
+							alist.remove( upditem )
+							self.setItems(alist)
+							alist = self.getItems()
+							del pItem;
+				except:
+					print("item cleanup problem: {}".format(e))
+					traceback.print_exc(file=sys.stdout)
+			self.cleaner_running = False
 			time.sleep(self.delay*2)
 
 	def cleanup_deleted_list(self):
 		''' Delete old guid from track items list. '''
 		while True:
 			time.sleep(24*60*60) # 24 tunnin välein
+			while self.cleaner_running:
+				time.sleep(10)
+			self.cleaner_running = True
 			print("Cleaning up old list.. keeping 100, max")
 			alist = self.guidsDeleted
 			newlist = []
@@ -167,12 +177,14 @@ class Firehose:
 			del self.guidsDeleted
 			self.guidsDeleted = newlist
 			print("{} GUID's saved".format(len(newlist)))
+			self.cleaner_running = False
 
 	def start(self):
 		''' Start the firehose. '''
 		while True:
-			print("update...")
-			self.update()
+			if not self.cleaner_running:
+				print("update...")
+				self.update()
 			#print("update sleep...")
 			time.sleep(self.delay/4)
 

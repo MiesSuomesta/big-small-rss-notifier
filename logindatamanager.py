@@ -27,10 +27,14 @@ def get_login_data_file_path():
 def get_login_data(fromFile, siteName):
 
 	data = {}
-	with open(fromFile) as json_file:
-		data = json.load(json_file)
+	try:
+		with open(fromFile) as json_file:
+			data = json.load(json_file)
 
-	sited = data.get(siteName)
+		sited = data.get(siteName)
+	except:
+		print("Login data: file {} reading error {}".format(url, e))
+		traceback.print_exc(file=sys.stdout)
 
 	#y = json.dumps(sited, indent=4)
 	#print(siteName, y)

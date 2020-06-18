@@ -3,6 +3,7 @@ import glob, os
 import logindatamanager as LDM
 import tempfile as TF
 from webpreview import web_preview
+import traceback
 import os
 import sys
 import time
@@ -15,14 +16,19 @@ class Screenshot():
 
 	def download_image(self, url):
 		data = None
-		try:
-			#print("url {} reading ...".format(url))
-			with urllib.request.urlopen(url) as response:
-				data = response.read()
-			#print("url {} read.".format(url))
-		except Exception as e:
-			print("url {} reading error {}".format(url, e))
-			pass
+		if url is not None:
+			try:
+				#print("url {} reading ...".format(url))
+				with urllib.request.urlopen(url) as response:
+					data = response.read()
+				#print("url {} read.".format(url))
+				return data
+			except:
+				print("Download image: url {} reading error {}".format(url, e))
+				traceback.print_exc()
+				pass
+
+		print("None as url?")
 		return data
 
 	def makeThumbnail(self, url, siteName, w, h, options=None):
@@ -69,7 +75,9 @@ class Screenshot():
 			
 			title, description, image = web_preview(url, headers=headers, parser="lxml")
 			
-			imageraw = self.download_image(image)
+			imageraw = None;
+			if image is not None:
+				imageraw = self.download_image(image)
 
 
 			tfileOut = None
