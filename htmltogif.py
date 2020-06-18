@@ -24,7 +24,7 @@ class Screenshot():
 				#print("url {} read.".format(url))
 				return data
 			except:
-				print("Download image: url {} reading error {}".format(url, e))
+				print("Download image: url {} reading error".format(url))
 				traceback.print_exc()
 				pass
 
