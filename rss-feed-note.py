@@ -84,7 +84,7 @@ class Firehose:
 				alist.extend(source.getItemlist())
 				#print("alist items updated: {}".format(alist))
 			except:
-				print("alist update problem: {}".format(e))
+				print("alist update problem!")
 				traceback.print_exc(file=sys.stdout)
 				continue
 		self.setItems(alist)
@@ -239,6 +239,8 @@ def show_note(screenshot, updateItem):
 
 			categories = categories + comma + cat
 
+	thumbnailFP = None
+
 	if sys.platform == "win32":
 		msgTitle = '''// {} //\n{}\n{}'''.format(siteName, categories, title)
 
@@ -263,7 +265,6 @@ def show_note(screenshot, updateItem):
 		except:
 			pass
 
-		updateItem['tmpimage'] = thumbnailFP
 	else: # not windows
 		if len(categories) > 0:
 			categories = categories + ":"
@@ -297,6 +298,8 @@ def show_note(screenshot, updateItem):
 			note.show()
 		except:
 			pass
+
+	updateItem['tmpimage'] = thumbnailFP
 
 
 # ------------ MAIN THREADS ------------------------------------------

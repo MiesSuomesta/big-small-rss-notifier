@@ -1,4 +1,4 @@
-import sys
+import sys, os
 import traceback
 import urllib3
 import xmltodict
@@ -53,7 +53,11 @@ class RssFeed():
 
 			Items = self.getItemlist()
 			#print("--------------------\nfeed entry: {}".format(entry))
+			if not 'guid' in entry:
+				entry['guid'] = os.urandom(24).hex()
+
 			entryGuid = entry['guid']
+				
 
 			if entryGuid in Items:
 				#print("guid exists..")

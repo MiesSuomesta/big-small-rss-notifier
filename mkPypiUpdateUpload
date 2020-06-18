@@ -1,5 +1,10 @@
-#!/bin/sh
+#!/bin/sh -x
+TAG="$1"
 rm -rf dist *.egg*info *.dist*info
+
+git tag -a v${TAG} -m "version ${TAG}"
+sed -i "s,\(version=.\).+\",version=\"$TAG\",g" setup.py
+sed -i "s,\(version=.\).+\",version=\"$TAG\",g" setup-test.py
 
 python3 setup-test.py sdist bdist_wheel
 
