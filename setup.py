@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="big-small-rss-notifier-pkg-MiesSuomesta", # Replace with your own username
+    name="big-small-rss-notifier-pkg", # Replace with your own username
     version="0.0.1b2",
     author="Lauri Jakku",
     author_email="lja@iki.fi",

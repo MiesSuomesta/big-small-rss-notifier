@@ -1,6 +1,18 @@
 #!/bin/sh
 rm -rf dist *.egg*info *.dist*info
 
+python3 setup-test.py sdist bdist_wheel
+
+OK=0
+python3 -m twine upload --repository testpypi dist/* && OK=1
+
+if [ $OK -eq 0 ]
+then
+	exit 1
+fi
+
+rm -rf dist *.egg*info *.dist*info
+
 python3 setup.py sdist bdist_wheel
 
-python3 -m twine upload --repository testpypi dist/*
+python3 -m twine upload dist/*
