@@ -30,13 +30,13 @@ def feedconfig_get_data():
 
 	data = {}
 	try:
-		with open(fromFile) as json_file:
+		with open(filenameFrom) as json_file:
 			data = json.load(json_file)
 
-		sited = data.get(siteName)
 	except:
-		print("Login data: file {} reading error {}".format(url, e))
+		print("Login data: file {} reading error".format(filenameFrom))
 		traceback.print_exc(file=sys.stdout)
+	return data
 
 def feedconfig_get_site_data(siteName):
 
