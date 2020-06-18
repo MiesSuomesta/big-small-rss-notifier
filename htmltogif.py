@@ -1,11 +1,11 @@
 from PIL import Image
 import glob, os
-import logindatamanager as LDM
 import tempfile as TF
 from webpreview import web_preview
 import traceback
 import os
 import sys
+from feedconfigdatamanager import *
 import time
 from base64 import b64encode
 import urllib
@@ -31,10 +31,7 @@ class Screenshot():
 		print("None as url?")
 		return data
 
-	def makeThumbnail(self, url, siteName, w, h, options=None):
-
-		datasAt = LDM.get_login_data_file_path()
-		siteData = LDM.get_login_data(datasAt, siteName)
+	def makeThumbnail(self, url, siteName, siteData, w, h, options=None):
 
 		if options is None:
 			options = {}
@@ -62,7 +59,7 @@ class Screenshot():
 			copener = urllib.request.build_opener(auth_handler)
 			urllib.request.install_opener(copener)
 		except KeyError:
-			auth_ok = False
+			auth_ok = siteData['public']
 			pass
 
 		# --------------------------------------------------------------
@@ -79,7 +76,6 @@ class Screenshot():
 			if image is not None:
 				imageraw = self.download_image(image)
 
-
 			tfileOut = None
 
 			if imageraw is not None:
@@ -90,7 +86,7 @@ class Screenshot():
 				if sys.platform == "win32":
 					tfileOut = tfileOut + ".ico"
 				else:
-					tfileOut = ".png"
+					tfileOut = tfileOut + ".png"
 
 				# write string containing pixel data to file
 				with open(tfileIn, 'wb') as outf:

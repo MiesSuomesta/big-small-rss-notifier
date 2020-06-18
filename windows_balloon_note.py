@@ -107,17 +107,19 @@ class WindowsBalloonNote(object):
         UpdateWindow(self.hwnd)
 
         # icon
+        hicon = None
+	
         if icon_path is not None:
             icon_path = path.realpath(icon_path)
             icon_flags = LR_LOADFROMFILE 
 
-        try:
-            hicon = LoadImage(self.hinst, icon_path,
+            try:
+                hicon = LoadImage(self.hinst, icon_path,
                               IMAGE_ICON, 0, 0, icon_flags)
-        except Exception as e:
-            logging.error("Some trouble with the icon ({}): {}"
-                          .format(icon_path, e))
-            hicon = LoadIcon(0, IDI_APPLICATION)
+            except Exception as e:
+                logging.error("Some trouble with the icon ({}): {}"
+                              .format(icon_path, e))
+                hicon = LoadIcon(0, IDI_APPLICATION)
 
         # Taskbar icon
         flags = NIF_ICON | NIF_MESSAGE | NIF_TIP

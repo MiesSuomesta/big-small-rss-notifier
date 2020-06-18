@@ -3,8 +3,8 @@ import sys
 
 from rssfeeditem import *
 from htmltogif import *
-
 import traceback
+from feedconfigdatamanager import *
 from bs4 import BeautifulSoup
 import feedparser
 import time
@@ -24,33 +24,19 @@ else:
 
 # -------------------------------------------
 
-USE_PLYER = False
-
 Feeds = []
 
-# Kauppalehti
-Feeds.append( RssFeed('kauppalehti', "https://feeds.kauppalehti.fi/rss/main") )
-Feeds.append( RssFeed('kauppalehti', "https://feeds.kauppalehti.fi/rss/klnyt") )
+feedconfig = feedconfig_get_data()
+if feedconfig is not None:
+	print("Configuration parsed ok")
+	
+for fciSiteName in feedconfig.keys():
+    fciSiteData = feedconfig.get(fciSiteName)
+    if 'feeds' in fciSiteData:
+        for fciSiteFeed in fciSiteData.get('feeds'):
+            Feeds.append( RssFeed(fciSiteName, fciSiteFeed, fciSiteData) )
+            print("Added {} feed {} to be monitored".format(fciSiteName,fciSiteFeed))
 
-# Yle
-Feeds.append( RssFeed('yle', "https://feeds.yle.fi/uutiset/v1/recent.rss?publisherIds=YLE_UUTISET") )
-Feeds.append( RssFeed('yle', "https://feeds.yle.fi/uutiset/v1/majorHeadlines/YLE_UUTISET.rss") )
-
-# Kaleva
-Feeds.append( RssFeed('kaleva', "https://www.kaleva.fi/feedit/rss/managed-listing/rss-uusimmat/") )
-Feeds.append( RssFeed('kaleva', "https://www.kaleva.fi/feedit/rss/managed-listing/kotimaa/") )
-Feeds.append( RssFeed('kaleva', "https://www.kaleva.fi/feedit/rss/managed-listing/ulkomaat/") )
-
-# Iltasanomat
-Feeds.append( RssFeed('iltasanomat', "https://www.is.fi/rss/tuoreimmat.xml") )
-Feeds.append( RssFeed('iltasanomat', "https://www.is.fi/rss/viihde.xml") )
-Feeds.append( RssFeed('iltasanomat', "https://www.is.fi/rss/elokuvat.xml") )
-
-# Kyberturvallisuuskeskus
-Feeds.append( RssFeed('kyberturvallisuuskeskus', "https://www.kyberturvallisuuskeskus.fi/feed/rss/fi") )
-
-# verohallinto
-Feeds.append( RssFeed('verohallinto', "https://www.vero.fi/api/rss/news/fi") )
 
 class Firehose:
 	def __init__(self, out=sys.stdout, delay=5.0):
@@ -203,9 +189,6 @@ def getKeyVal(ofrom, key, default):
 	#print("{} {} -> {}".format(type(ofrom), key, rv))
 	return rv
 
-# One-time initialization
-#toaster = ToastNotifier()
-
 def show_note(screenshot, updateItem):
 
 	def show_note_item_clicked(obj):
@@ -215,7 +198,8 @@ def show_note(screenshot, updateItem):
 
 	#print("show_note:: RAW: {}".format(updateItem))
 
-	rawEntry 	= getKeyVal(updateItem, 'rawEntry', None)
+	rawEntry = getKeyVal(updateItem, 'rawEntry', None)
+	siteData = getKeyVal(updateItem, 'siteData', None)
 
 	#y = json.dumps(rawEntry, indent=4)
 	#print(y)
@@ -230,7 +214,7 @@ def show_note(screenshot, updateItem):
 	link 		= getKeyVal(rawEntry, 'link', None)
 	thumb 		= getKeyVal(rawEntry, 'thumb', None)
 	published 	= getKeyVal(rawEntry, 'published', None)
-	description 	= getKeyVal(rawEntry, 'description', None)
+	description = getKeyVal(rawEntry, 'description', None)
 	siteName 	= getKeyVal(updateItem, 'siteName', None)
 
 	category="News from " + siteName
@@ -241,8 +225,8 @@ def show_note(screenshot, updateItem):
 
 	link = TinyUrl.mkShortUrl(link)
 
-	thumbnailFP = screenshot.makeThumbnail(link, siteName, 150, 100)
-
+	thumbnailFP = screenshot.makeThumbnail(link, siteName, siteData, 150, 100)
+	
 	categories = category
 
 	if isinstance(category, list):
@@ -263,17 +247,23 @@ def show_note(screenshot, updateItem):
 
 		msgTitle = '''// {} // {}\n{}'''.format(siteName, categories, title)
 		msgBody = str(description) + str(published)
-
-		wbn = WindowsBalloonNote()
-		#print("show_note:: windows")
-		wbn.show_toast(msgTitle,
+		
+		
+		
+		try:
+			wbn = WindowsBalloonNote()
+			#print("show_note:: windows")
+			wbn.show_toast(msgTitle,
 					msgBody,
 					threaded=True,
 					icon_path=thumbnailFP,
 					cbFunc = show_note_item_clicked,
 				        cbArgs = link
 				)
+		except:
+			pass
 
+		updateItem['tmpimage'] = thumbnailFP
 	else: # not windows
 		if len(categories) > 0:
 			categories = categories + ":"
@@ -290,30 +280,27 @@ def show_note(screenshot, updateItem):
 		msgTitle.encode(encodeto)
 		msgBody.encode(encodeto)
 
-		note = Notify.Notification.new(msgTitle, msgBody, "dialog-information")
+		try:
+			note = Notify.Notification.new(msgTitle, msgBody, "dialog-information")
+			image = None
+			if thumbnailFP is not None:
+				try:
+					image = GdkPixbuf.Pixbuf.new_from_file(thumbnailFP)
+					updateItem['tmpimage'] = thumbnailFP
+				except:
+					pass
 
-		image = None
-		updateItem['tmpimage'] = None
-		if thumbnailFP is not None:
-			try:
-				image = GdkPixbuf.Pixbuf.new_from_file(thumbnailFP)
-				updateItem['tmpimage'] = thumbnailFP
-			except:
-				pass
+				finally:
+					if image is not None:
+						note.set_image_from_pixbuf(image)
 
-			finally:
-				if image is not None:
-					note.set_image_from_pixbuf(image)
-
-		#print("show_note:: linux: ")
-		note.show()
-
-
+			note.show()
+		except:
+			pass
 
 
-
+# ------------ MAIN THREADS ------------------------------------------
 import _thread
-
 
 def start_cleanup_deleted_list(tn, MO):
 	MO.cleanup_deleted_list()

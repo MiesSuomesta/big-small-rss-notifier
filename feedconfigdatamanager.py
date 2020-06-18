@@ -2,7 +2,7 @@ import traceback
 import json, os, sys
 FILEPATH_SHOWN = False
 
-def get_login_data_file_path():
+def feedconfig_get_feed_config_file_path():
 
 	datasAt=""
 	if sys.platform == "win32":
@@ -24,7 +24,9 @@ def get_login_data_file_path():
 
 	return datasAt
 
-def get_login_data(fromFile, siteName):
+def feedconfig_get_data():
+
+	filenameFrom = feedconfig_get_feed_config_file_path();
 
 	data = {}
 	try:
@@ -35,6 +37,13 @@ def get_login_data(fromFile, siteName):
 	except:
 		print("Login data: file {} reading error {}".format(url, e))
 		traceback.print_exc(file=sys.stdout)
+
+def feedconfig_get_site_data(siteName):
+
+	filenameFrom = get_feed_config_file_path();
+
+	data = feedconfig_get_data()
+	sited = data.get(siteName)
 
 	#y = json.dumps(sited, indent=4)
 	#print(siteName, y)
