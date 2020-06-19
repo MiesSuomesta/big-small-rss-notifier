@@ -73,6 +73,28 @@ class Firehose:
 			guid = upditem['guid']
 			print("- TS {}, guid: {}".format(ts, guid))
 
+
+	def list_add(self, additem):
+		ts, item = additem
+		guid = ts
+
+		if 'guid' in item:
+			guid = item['guid']
+
+		alist = self.getItems()
+
+		found = False
+		for li in alist:
+			if guid in li:
+				if item in li:
+					found = True
+				
+		if not found:
+			#print("Adding item {}: {}".format(ts , guid))
+			alist.append(additem)
+			self.setItems(alist)
+
+		
 	def update(self):
 		''' Update all sources. '''
 		alist = []
@@ -81,7 +103,10 @@ class Firehose:
 				#print("--> items update {}".format(source))
 				source.update(self.guidsDeleted)
 				#print("items updated:", source.getItemlist())
-				alist.extend(source.getItemlist())
+
+				for ui in source.getItemlist():
+					self.list_add(ui)
+
 				#print("alist items updated: {}".format(alist))
 			except:
 				print("alist update problem!")
@@ -89,7 +114,6 @@ class Firehose:
 				continue
 		self.setItems(alist)
 		#self.dumpItems()
-		
 
 	def show_notes(self):
 		''' Update all items added. '''
@@ -104,10 +128,21 @@ class Firehose:
 					show_note(self.screenshot, pItem)
 					pItem['shown'] = True;
 				except:
-					print("item show problem: {}".format(e))
+					print("item show problem")
 					traceback.print_exc(file=sys.stdout)
 					continue
 			time.sleep(15)
+
+	def list_remove(self, removeitem):
+		ts, item = removeitem
+
+		for li in self.getItems():
+			if ts in li and item in li:
+				#print("Remove: {} {}".format(ts, item))
+				alist = self.getItems()
+				if alist is not None:
+					alist.remove(li)
+					self.setItems( alist )
 
 	def cleanup(self):
 		''' Update all items added. '''
@@ -132,10 +167,9 @@ class Firehose:
 								if os.path.exists(filePath):
 									os.remove(filePath)
 
-							alist.remove( upditem )
-							self.setItems(alist)
+							self.list_remove(upditem)
+
 							alist = self.getItems()
-							del pItem;
 				except:
 					print("item cleanup problem")
 					traceback.print_exc(file=sys.stdout)
