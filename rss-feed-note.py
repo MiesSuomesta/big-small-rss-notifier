@@ -61,25 +61,18 @@ class Firehose:
 		from operator import itemgetter
 		self.itemsAdded = sorted(alist, key=itemgetter(0), reverse=True)
 
-	def getItems(self):
-		from operator import itemgetter
-		self.itemsAdded = sorted(self.itemsAdded, key=itemgetter(0), reverse=True)
-		return self.itemsAdded
-
-	def dumpItems(self):
-		for itm in self.getItems():
-			ts = itm[0]
-			upditem = itm[1]
-			guid = upditem['guid']
-			print("- TS {}, guid: {}".format(ts, guid))
-
-
 	def list_add(self, additem):
 		ts, item = additem
 		guid = ts
 
+		if item['shown']:
+			return
+
 		if 'guid' in item:
 			guid = item['guid']
+
+		if guid in self.guidsDeleted:
+			return
 
 		alist = self.getItems()
 
@@ -91,9 +84,21 @@ class Firehose:
 				
 		if not found:
 			#print("Adding item {}: {}".format(ts , guid))
+			alist = self.getItems()
 			alist.append(additem)
 			self.setItems(alist)
 
+	def getItems(self):
+		from operator import itemgetter
+		self.itemsAdded = sorted(self.itemsAdded, key=itemgetter(0), reverse=True)
+		return self.itemsAdded
+
+	def dumpItems(self):
+		for itm in self.getItems():
+			ts = itm[0]
+			upditem = itm[1]
+			guid = upditem['guid']
+			print("- TS {}, guid: {}".format(ts, guid))
 		
 	def update(self):
 		''' Update all sources. '''
@@ -137,7 +142,7 @@ class Firehose:
 		ts, item = removeitem
 
 		for li in self.getItems():
-			if ts in li and item in li:
+			if item['shown'] and ts in li and item in li:
 				#print("Remove: {} {}".format(ts, item))
 				alist = self.getItems()
 				if alist is not None:
