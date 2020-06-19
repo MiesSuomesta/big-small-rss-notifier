@@ -95,7 +95,7 @@ class Firehose:
 		''' Update all items added. '''
 		while True:
 			#print("show_notes: items:", alist)
-
+			print("Showing {} items".format(len(self.getItems())))
 			for (ts,pItem) in self.getItems():
 				time.sleep(self.delay/3)
 				#print("show_notes:: item:{} and {}".format( type(ts), type(pItem)))
@@ -139,6 +139,7 @@ class Firehose:
 				except:
 					print("item cleanup problem")
 					traceback.print_exc(file=sys.stdout)
+			print("{} clean up saved".format(len(self.getItems())))
 			self.cleaner_running = False
 			time.sleep(self.delay*2)
 
