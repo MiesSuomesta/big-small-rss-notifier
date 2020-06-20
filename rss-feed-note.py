@@ -53,6 +53,49 @@ class Firehose:
 		self.cleaner_running = False
 		self.dict_locked = False
 
+		#watchdog reset times
+		self.update_ts = time.monotonic_ns()
+		self.cleanup_ts = time.monotonic_ns()
+		self.cleanup_deleted_list_ts = time.monotonic_ns()
+		self.watchdog_ts = time.monotonic_ns()
+
+	def watchdog(self):
+
+		while True:
+			timeUsec = 	(self.update_ts 		/ 1000*1000) + 60
+			timeCsec = 	(self.cleanup_ts 		/ 1000*1000) + 60
+			timeCDLsec = 	(self.cleanup_deleted_list_ts	/ 1000*1000) + 60
+			timeWDLsec = 	(self.watchdog_ts 		/ 1000*1000) + 60
+			TO = 		(time.monotonic_ns()		/ 1000*1000)
+
+			die = False
+			reason="WD died"
+
+			if (TO < timeUsec):
+				reason="Updater died"
+				die = True
+
+			if (TO < timeCsec):
+				reason="Cleanup died"
+				die = True
+
+			if (TO < timeCDLsec):
+				reason="Cleanup guids died"
+				die = True
+
+			if (TO < timeWDLsec):
+				reason="WD died"
+				die = True
+
+			if die:
+				print("Dying: {}....".format(reason))
+				os.exit(1)
+
+			time.sleep(20)
+
+
+		self.watchdog_ts = time.monotonic_ns()
+		print("... All threads alive.")
 
 	def setSources(self, feeds):
 		self._sources = feeds
@@ -113,6 +156,8 @@ class Firehose:
 	def update(self):
 		''' Update all sources. '''
 
+		self.update_ts = time.monotonic_ns()
+
 		feedItems = self.getItems().copy()
 		for source in self._sources:
 			try:
@@ -158,9 +203,11 @@ class Firehose:
 
 		try:
 			if guid in self.guidsDeleted:
-				return False
+				#print("guid in deleted: ", guid)
+				return True
 
 			if 'shown' in pUpdateItem:
+				#print("guid shown: ", pUpdateItem['shown'])
 				return pUpdateItem['shown']
 
 		except:
@@ -174,6 +221,7 @@ class Firehose:
 		''' Update all items added. '''
 		while True:
 			time.sleep(self.delay*2)
+			self.cleanup_ts = time.monotonic_ns()
 			print("Cleaning up............")		
 
 			aDict = self.getItems()
@@ -185,14 +233,19 @@ class Firehose:
 				if self.check_if_delete_ok(guid, UpdateItem) is False:
 					continue
 
-				keysToDelete.append(guid)
+				if guid not in keysToDelete:
+					keysToDelete.append(guid)
 
+			print("keysToDelete len:", len(keysToDelete))
 
 			for feedKey in keysToDelete:
 				UpdateItem = aDict.get(feedKey)
 
+
 				try:
-					self.guidsDeleted.append(guid)
+					if guid not in self.guidsDeleted:
+						self.guidsDeleted.append(guid)
+
 					filePath = UpdateItem['tmpimage']
 
 					if filePath is not None:
@@ -213,7 +266,9 @@ class Firehose:
 	def cleanup_deleted_list(self, maxItems):
 		''' Delete old guid from track items list. '''
 		while True:
-			time.sleep(24*60*60) # 24 tunnin välein
+			for t in range(1, 24*60):
+				time.sleep(60) # 24 tunnin välein
+				self.cleanup_deleted_list_ts = time.monotonic_ns()
 			cnt = 0
 
 			print("Cleaning up old list.. keeping {}, max".format(maxItems))
@@ -395,6 +450,9 @@ def start_notes_build(tn, MO):
 def start_notes_cleaner(tn, MO):
 	MO.cleaner()
 
+def start_wd(tn, MO):
+	MO.watchdog()
+
 
 MainObj = Firehose(delay=30);
 
@@ -404,6 +462,7 @@ _thread.start_new_thread(start_notes_show, 		('Note show',MainObj,))
 _thread.start_new_thread(start_notes_build, 		('Note build',MainObj,))
 _thread.start_new_thread(start_notes_cleaner, 		('Note cleaner',MainObj,))
 _thread.start_new_thread(start_cleanup_deleted_list, 	('Guid list cleaner',MainObj,))
+_thread.start_new_thread(start_wd, 			('Watchdog',MainObj,))
 
 
 while True:

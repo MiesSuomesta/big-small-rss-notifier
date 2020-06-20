@@ -11,6 +11,7 @@ import feedparser
 from base64 import b64encode
 import urllib
 import urllib.request
+import hashlib
 from collections import OrderedDict
 
 
@@ -82,7 +83,10 @@ class RssFeed():
 	def setItemDict(self, pItemDict): # Mapping: guid -> updateitem
 		del self.m_guidItems
 		self.m_guidItems = pItemDict
-	
+
+	def get_md5(self, data):
+		return hashlib.md5(data.encode()).hexdigest()
+
 	def update(self, deletedGuids):
 
 
@@ -95,8 +99,8 @@ class RssFeed():
 
 		for feedEntry in reversed(entries):
 
-			if not 'guid' in feedEntry:
-				feedEntry['guid'] = os.urandom(24).hex()
+			if 'guid' not in feedEntry:
+				feedEntry['guid'] = self.get_md5(self.info['siteName'] + self.info['url'])
 
 			entryGuid = feedEntry['guid']
 			alreadyHadObj = Items.get(entryGuid, None)	
