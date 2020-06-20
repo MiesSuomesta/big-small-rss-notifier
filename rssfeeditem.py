@@ -11,21 +11,64 @@ import feedparser
 from base64 import b64encode
 import urllib
 import urllib.request
+from collections import OrderedDict
+
 
 class RssFeed():
 
+	
+
+
 
 	def __init__(self, pSiteName, pUrl, siteData):
-	
 		self.SOURCE = pSiteName+':'+ pUrl
 		self.timestamp = time.monotonic_ns()
 		self.shown = False
+		self.m_guidItems = OrderedDict()
 		self.info = {}
 		self.info['url'] = pUrl;
 		self.info['siteName'] = pSiteName
 		self.info['siteIcon'] = None;
 		self.info['siteData'] = siteData;
-		self.Itemlist = []
+
+	def sortItemsByPubDate(self):
+		return # sorting done in main class
+
+		orgItemsDict = self.getItemDict()
+		newItemsDict = OrderedDict()
+
+
+		alist = []
+		last_ts = None
+		first_item = True
+
+		if orgItemsDict is None:
+			return
+
+		for dictKey in orgItemsDict.keys():
+			updItem = orgItemsDict.get(dictKey)
+			ts = updItem['raw_published_date']
+
+			if updItem['shown']:
+				continue
+
+			if first_item:
+				last_ts = ts
+				alist.append(updItem)
+				first_item = False
+				continue
+
+			if ts < last_ts:
+				alist.append(updItem)
+			else:
+				alist.insert(0, updItem)
+
+		for feedItem in alist:
+			iKey = feedItem['guid']
+			newItemsDict[iKey] = feedItem
+
+		self.setItemDict(newItemsDict)
+
 
 	def getInfo(self):
 		return self.info
@@ -33,47 +76,42 @@ class RssFeed():
 	def setInfo(self, pInfo):
 		self.info = pInfo
 
-	def getItemlist(self):
-		return self.Itemlist
+	def getItemDict(self): # Mapping: guid -> updateitem
+		return self.m_guidItems
 
-	def setItemlist(self, pItemlist):
-		self.Itemlist = pItemlist
+	def setItemDict(self, pItemDict): # Mapping: guid -> updateitem
+		del self.m_guidItems
+		self.m_guidItems = pItemDict
 	
 	def update(self, deletedGuids):
 
 
 		feed = feedparser.parse(self.info['url'])
 		#print("feed: {}".format(feed))
-		self.timestamp = time.monotonic_ns()
-
 
 		entries = feed['entries']
 		#print("feed entries: {}".format(entries))
-		for entry in reversed(entries):
+		Items = self.getItemDict()
 
-			Items = self.getItemlist()
-			#print("--------------------\nfeed entry: {}".format(entry))
-			if not 'guid' in entry:
-				entry['guid'] = os.urandom(24).hex()
+		for feedEntry in reversed(entries):
 
-			entryGuid = entry['guid']
-				
+			if not 'guid' in feedEntry:
+				feedEntry['guid'] = os.urandom(24).hex()
 
-			if entryGuid in Items:
-				#print("guid exists..")
-				continue
-			#else:
-                        #        print("guid {}".format(entryGuid))
-				
+			entryGuid = feedEntry['guid']
+			alreadyHadObj = Items.get(entryGuid, None)	
+			if alreadyHadObj is not None:
+				if 'shown' in alreadyHadObj:
+					if alreadyHadObj['shown']:
+						#print("guid already listed: {}".format(entryGuid))
+						continue
 
 			if entryGuid in deletedGuids:
 				#print("guid already shown: {}".format(entryGuid))
 				continue
-			#else:
-                        #        print("guid {}".format(entryGuid))
 
 
-			if not self.filter(entry):
+			if not self.filter(feedEntry):
 				continue
 
 
@@ -83,23 +121,29 @@ class RssFeed():
 			update['siteIcon'] = self.info['siteIcon']
 			update['siteData'] = self.info['siteData']
 			update['siteUrl'] = self.info['url']
-			update['rawEntry'] = entry
-			update['cleantitle'] = clean_html(entry['title'])
-			update['cleanbody'] = self.clean_body(_extract_body(entry))
+			update['rawEntry'] = feedEntry
+			update['cleantitle'] = clean_html(feedEntry['title'])
+			update['cleanbody'] = self.clean_body(_extract_body(feedEntry))
 
-			thumb = _extract_thumb(entry)
+			thumb = _extract_thumb(feedEntry)
 			if thumb:
-				update['thumb'] = thumb
+				feedEntry['thumb'] = thumb
 			
-			raw_date = entry['published_parsed']
+			raw_date = feedEntry['published_parsed']
+			#print("raw_date", raw_date)
 			update['date'] = time.strftime('%Y-%m-%d %H:%M:%S', raw_date)
 			update['timeNS'] = time.monotonic_ns()
 			update['source'] = self.SOURCE
 			update['shown'] = False
-				
-			Items.append( (update['date'], update) )
+			update['raw_published_date'] = time.strftime('%s', raw_date)
+			#print("raw_date -> sec", update['raw_date'])
 
-			self.setItemlist(Items)
+			## New key
+			Items[entryGuid] = update
+
+		self.setItemDict(Items)
+		self.sortItemsByPubDate()
+
 
 	def clean_body(self, text):
 		return clean_html(text)

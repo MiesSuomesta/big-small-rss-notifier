@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import sys
 
+from collections import OrderedDict
 from rssfeeditem import *
 from htmltogif import *
 import traceback
@@ -47,9 +48,11 @@ class Firehose:
 		self.delay = delay
 		# list of installed source objects
 		self._sources = []
-		self.itemsAdded = []
+		self.itemsAdded = OrderedDict()
 		self.guidsDeleted = []
 		self.cleaner_running = False
+		self.dict_locked = False
+
 
 	def setSources(self, feeds):
 		self._sources = feeds
@@ -58,39 +61,9 @@ class Firehose:
 		return self._sources
 
 	def setItems(self, alist):
-		from operator import itemgetter
-		self.itemsAdded = sorted(alist, key=itemgetter(0), reverse=True)
-
-	def list_add(self, additem):
-		ts, item = additem
-		guid = ts
-
-		if item['shown']:
-			return
-
-		if 'guid' in item:
-			guid = item['guid']
-
-		if guid in self.guidsDeleted:
-			return
-
-		alist = self.getItems()
-
-		found = False
-		for li in alist:
-			if guid in li:
-				if item in li:
-					found = True
-				
-		if not found:
-			#print("Adding item {}: {}".format(ts , guid))
-			alist = self.getItems()
-			alist.append(additem)
-			self.setItems(alist)
+		self.itemsAdded = alist
 
 	def getItems(self):
-		from operator import itemgetter
-		self.itemsAdded = sorted(self.itemsAdded, key=itemgetter(0), reverse=True)
 		return self.itemsAdded
 
 	def dumpItems(self):
@@ -99,113 +72,178 @@ class Firehose:
 			upditem = itm[1]
 			guid = upditem['guid']
 			print("- TS {}, guid: {}".format(ts, guid))
-		
+
+	def sortItemsByPubDate(self):
+		orgItemsDict = self.getItems().copy()
+		newItemsDict = OrderedDict()
+
+
+		alist = []
+		last_ts = None
+		first_item = True
+
+		if orgItemsDict is None:
+			return
+
+		for dictKey in orgItemsDict.keys():
+			updItem = orgItemsDict.get(dictKey)
+			ts = updItem['raw_published_date']
+
+			if updItem['shown']:
+				continue
+
+			if first_item:
+				last_ts = ts
+				alist.append(updItem)
+				first_item = False
+				continue
+
+			if ts < last_ts:
+				alist.append(updItem)
+			else:
+				alist.insert(0, updItem)
+
+		for feedItem in alist:
+			iKey = feedItem['guid']
+			newItemsDict[iKey] = feedItem
+
+		self.setItems(newItemsDict)
+
+
 	def update(self):
 		''' Update all sources. '''
-		alist = []
+
+		feedItems = self.getItems().copy()
 		for source in self._sources:
 			try:
-				#print("--> items update {}".format(source))
+				#print("--> items update {}".format(feedItems))
 				source.update(self.guidsDeleted)
-				#print("items updated:", source.getItemlist())
-
-				for ui in source.getItemlist():
-					self.list_add(ui)
-
-				#print("alist items updated: {}".format(alist))
+				srcDict = source.getItemDict().copy()
+				feedItems.update(srcDict)
+				#print("<-- items update {}".format(feedItems))
 			except:
 				print("alist update problem!")
 				traceback.print_exc(file=sys.stdout)
 				continue
-		self.setItems(alist)
+		self.setItems(feedItems)
+
+		self.sortItemsByPubDate() #Sort all together
+
 		#self.dumpItems()
 
 	def show_notes(self):
 		''' Update all items added. '''
 		while True:
 			#print("show_notes: items:", alist)
-			print("Showing {} items".format(len(self.getItems())))
-			for (ts,pItem) in self.getItems():
-				time.sleep(self.delay/3)
-				#print("show_notes:: item:{} and {}".format( type(ts), type(pItem)))
+			itemlist = self.getItems().copy()
+			itemkeylist = itemlist.keys()
+
+			print("Showing {} items".format(len(itemkeylist)))
+			for dictKey in itemkeylist:
+				pUpdateItem = itemlist.get(dictKey)
+				#print("show_notes:: item:{} and {}".format(dictKey, pUpdateItem))
+
 				try:
 					#print("item SHOW:{} {}".format(ts, pItem))
-					show_note(self.screenshot, pItem)
-					pItem['shown'] = True;
+					show_note(self.screenshot, pUpdateItem)
+					pUpdateItem['shown'] = True
 				except:
 					print("item show problem")
 					traceback.print_exc(file=sys.stdout)
 					continue
-			time.sleep(15)
+				time.sleep(self.delay/3)
+			time.sleep(self.delay/3)
 
-	def list_remove(self, removeitem):
-		ts, item = removeitem
+	def check_if_delete_ok(self, guid, pUpdateItem):
 
-		for li in self.getItems():
-			if item['shown'] and ts in li and item in li:
-				#print("Remove: {} {}".format(ts, item))
-				alist = self.getItems()
-				if alist is not None:
-					alist.remove(li)
-					self.setItems( alist )
+		try:
+			if guid in self.guidsDeleted:
+				return False
+
+			if 'shown' in pUpdateItem:
+				return pUpdateItem['shown']
+
+		except:
+			print("check_if_delete_ok problem")
+			traceback.print_exc(file=sys.stdout)
+			pass
+
+		return False
 
 	def cleanup(self):
 		''' Update all items added. '''
 		while True:
 			time.sleep(self.delay*2)
 			print("Cleaning up............")		
-			while self.cleaner_running:
-				time.sleep(10)
-			self.cleaner_running = True
-			alist = self.getItems()
-			for upditem in alist:
+
+			aDict = self.getItems()
+			keysToDelete = []
+			for feedKey in aDict.keys():
+				UpdateItem = aDict.get(feedKey)
+				guid = UpdateItem['guid']
+
+				if self.check_if_delete_ok(guid, UpdateItem) is False:
+					continue
+
+				keysToDelete.append(guid)
+
+
+			for feedKey in keysToDelete:
+				UpdateItem = aDict.get(feedKey)
+
 				try:
-					(ts,pItem) = upditem
-					if 'shown' in pItem:
-						if pItem['shown']:
-							#print("Cleaning up: {}".format(pItem['guid']))
+					self.guidsDeleted.append(guid)
+					filePath = UpdateItem['tmpimage']
 
-							self.guidsDeleted.append(pItem['guid'])
-							filePath = pItem['tmpimage']
+					if filePath is not None:
+						if os.path.exists(filePath):
+							os.remove(filePath)
 
-							if filePath is not None:
-								if os.path.exists(filePath):
-									os.remove(filePath)
+					del aDict[guid]
 
-							self.list_remove(upditem)
-
-							alist = self.getItems()
 				except:
-					print("item cleanup problem")
+					print("delete key problem")
 					traceback.print_exc(file=sys.stdout)
-			print("{} clean up saved".format(len(self.getItems())))
-			self.cleaner_running = False
+					pass
+
+			self.setItems(aDict)
+			print("{} clean up saved".format(len(aDict)))
 			time.sleep(self.delay*2)
 
-	def cleanup_deleted_list(self):
+	def cleanup_deleted_list(self, maxItems):
 		''' Delete old guid from track items list. '''
 		while True:
 			time.sleep(24*60*60) # 24 tunnin välein
-			while self.cleaner_running:
-				time.sleep(10)
-			self.cleaner_running = True
-			print("Cleaning up old list.. keeping 100, max")
-			alist = self.guidsDeleted
-			newlist = []
-			for upditem in range(0, 100):
-				if len(alist) > 0:
-					guid = alist.pop()
-					if guid is not None:
-						newlist.append(guid)
-					else:
-						break
-				else:
-					break
-			del alist
-			del self.guidsDeleted
-			self.guidsDeleted = newlist
+			cnt = 0
+
+			print("Cleaning up old list.. keeping {}, max".format(maxItems))
+
+			aDict = self.getItems()
+			for feedItem in aDict.items():
+				guid, UpdateItem = feedItem
+
+				cnt = cnt + 1
+
+				if cnt < maxItems:
+					continue
+
+
+				try:
+					filePath = pItem['tmpimage']
+
+					if filePath is not None:
+						if os.path.exists(filePath):
+							os.remove(filePath)
+
+					del aDict[guid]
+
+				except:
+					print("delete problem")
+					traceback.print_exc(file=sys.stdout)
+					pass
+
 			print("{} GUID's saved".format(len(newlist)))
-			self.cleaner_running = False
+			self.setItems(aDict)
 
 	def start(self):
 		''' Start the firehose. '''
@@ -346,7 +384,7 @@ def show_note(screenshot, updateItem):
 import _thread
 
 def start_cleanup_deleted_list(tn, MO):
-	MO.cleanup_deleted_list()
+	MO.cleanup_deleted_list(100)
 
 def start_notes_show(tn, MO):
 	MO.show_notes()

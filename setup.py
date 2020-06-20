@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="big-small-rss-notifier", # Replace with your own username
-    version="0.1.2rc1",
+    version="0.2.1rc1",
     author="Lauri Jakku",
     author_email="lja@iki.fi",
     description="RSS Notifier",
