@@ -184,6 +184,7 @@ class Firehose:
 			itemkeylist = itemlist.keys()
 
 			print("Showing {} items".format(len(itemkeylist)))
+			slept = False
 			for dictKey in itemkeylist:
 				pUpdateItem = itemlist.get(dictKey)
 				#print("show_notes:: item:{} and {}".format(dictKey, pUpdateItem))
@@ -196,8 +197,11 @@ class Firehose:
 					print("item show problem")
 					traceback.print_exc(file=sys.stdout)
 					continue
-				time.sleep(self.delay/3)
-			time.sleep(self.delay/3)
+				slept = True
+				time.sleep(15)
+
+			if not slept:
+				time.sleep(30)
 
 	def check_if_delete_ok(self, guid, pUpdateItem):
 
@@ -307,7 +311,7 @@ class Firehose:
 				print("update...")
 				self.update()
 			#print("update sleep...")
-			time.sleep(self.delay/8)
+			time.sleep(self.delay)
 
 	def cleaner(self):
 		''' Start the firehose. '''
@@ -454,7 +458,7 @@ def start_wd(tn, MO):
 	MO.watchdog()
 
 
-MainObj = Firehose(delay=30);
+MainObj = Firehose(delay=5*60);
 
 MainObj.setSources(Feeds)
 
