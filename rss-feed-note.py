@@ -243,30 +243,31 @@ class Firehose:
 			print("keysToDelete len:", len(keysToDelete))
 
 			for feedKey in keysToDelete:
-				UpdateItem = aDict.get(feedKey)
+				UpdateItem = None
+				if feedKey in aDict:
+					try:
+						UpdateItem = aDict.get(feedKey)
 
+						if feedKey not in self.guidsDeleted:
+							self.guidsDeleted.append(feedKey)
 
-				try:
-					if guid not in self.guidsDeleted:
-						self.guidsDeleted.append(guid)
+						if UpdateItem is not None:
+							if 'tmpimage' in UpdateItem:
+								filePath = UpdateItem['tmpimage']
 
-					if UpdateItem is not None:
-						if 'tmpimage' in UpdateItem:
-							filePath = UpdateItem['tmpimage']
+								if filePath is not None:
+									if os.path.exists(filePath):
+										os.remove(filePath)
+						if feedKey in aDict:
+							del aDict[feedKey]
 
-							if filePath is not None:
-								if os.path.exists(filePath):
-									os.remove(filePath)
-
-					del aDict[guid]
-
-				except:
-					print("delete key problem")
-					traceback.print_exc(file=sys.stdout)
-					pass
+					except:
+						print("delete key problem")
+						traceback.print_exc(file=sys.stdout)
+						pass
 
 			self.setItems(aDict)
-			print("{} clean up saved".format(len(aDict)))
+			print("{} item count after clean up".format(len(aDict)))
 			time.sleep(self.delay*2)
 
 	def cleanup_deleted_list(self, maxItems):
