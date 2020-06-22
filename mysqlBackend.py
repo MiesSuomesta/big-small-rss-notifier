@@ -15,7 +15,7 @@ class MySQLBackend:
 		self.mysql_conn = None
 		try:
 			self.mysql_conn = MYCN.connect(host='localhost',
-						database='uutisetRss',
+						database='kauppalehtiOsakkeet',
 						user=self.login['username'],
 						password=self.login['password'])
 
@@ -26,75 +26,23 @@ class MySQLBackend:
 
 		return self.mysql_conn
 
-	def palauta_kannasta(self, Osake = None, Paivays = None, Hinta = None, Muutos = None, Osto = None, Myynti = None, 
-					Vaihto = None, Ylin = None, Alin = None, Suositus = None):
 
-		def add_str_for(cName, mName):
-			return '{} = "{}"'.format(cName, mName)
-			 
+	def palauta_kaikki_arvopaperin_kirjaukset(self, arvopaperin_nimi):
+
 		record = None
-
 		try:
-			if self.mysql_conn is None:
-				self.mysql_conn = self.mysql_connect()
 
-			cursor = self.mysql_conn.cursor()
+			cursor = self.pre_mysql()
 
+			query = 'select * from osakedata where Osake = "{}"'.format(arvopaperin_nimi)
 			
-			select_str = "*"
-			add_where = False
-			WHERE_ADD = ""
-			if Osake is not None:
-				WHERE_ADD = WHERE_ADD + add_str_for('Osake', Osake)
-				WHERE_ADD = WHERE_ADD + " and "
-				add_where = True
-			if Paivays is not None:
-				WHERE_ADD = WHERE_ADD +add_str_for('Paivays', Paivays)
-				WHERE_ADD = WHERE_ADD + " and "
-				add_where = True
-			if Hinta is not None:
-				WHERE_ADD = WHERE_ADD +add_str_for('Hinta', Hinta)
-				WHERE_ADD = WHERE_ADD + " and "
-				add_where = True
-			if Muutos is not None:
-				WHERE_ADD = WHERE_ADD +add_str_for('Muutos', Muutos)
-				WHERE_ADD = WHERE_ADD + " and "
-				add_where = True
-			if Osto is not None:
-				WHERE_ADD = WHERE_ADD +add_str_for('Osto', Osto)
-				WHERE_ADD = WHERE_ADD + " and "
-				add_where = True
-			if Myynti is not None:
-				WHERE_ADD = WHERE_ADD +add_str_for('Myynti', Myynti)
-				WHERE_ADD = WHERE_ADD + " and "
-				add_where = True
-			if Vaihto is not None:
-				WHERE_ADD = WHERE_ADD +add_str_for('Vaihto', Vaihto)
-				WHERE_ADD = WHERE_ADD + " and "
-				add_where = True
-			if Ylin is not None:
-				WHERE_ADD = WHERE_ADD +add_str_for('Ylin', Ylin)
-				WHERE_ADD = WHERE_ADD + " and "
-				add_where = True
-			if Alin is not None:
-				WHERE_ADD = WHERE_ADD +add_str_for('Alin', Alin)
-				WHERE_ADD = WHERE_ADD + " and "
-				add_where = True
-			if Suositus is not None:
-				add_str_for('Suositus', Suositus)
-				add_where = True
-
-			if add_where:
-				WHERE_ADD = "where " + WHERE_ADD
-
-
-				
-			query = 'select * from osakedata {}'.format(WHERE_ADD)
-			print ("Query: ", query)
 			cursor.execute(query, ())
-
 			record = cursor.fetchall()
 
+			#print("query", query )
+			#print("recordit", record )
+
+			self.post_mysql(cursor)
 
 		except Error as error:
 			if self.mysql_conn is not None and self.mysql_conn.is_connected():
@@ -102,11 +50,73 @@ class MySQLBackend:
 
 			traceback.print_exc(file=sys.stdout)
 			print(error)
+			cursor = None
 
-		finally:
-			cursor.close()
-			self.mysql_conn.close()
-			self.mysql_conn = None;
+		return record
+
+	def palauta_kaikki_arvopaperien_nimet(self):
+
+		record = None
+
+		cursor = self.pre_mysql()
+
+		query = 'select distinct Osake from osakedata;'
+		cursor.execute(query, ())
+		record = cursor.fetchall()
+
+		nimilista = []
+		for row in record:
+			nimi = row[0]
+
+			if nimi not in nimilista:
+				#print("Adding nimi {}".format(nimi))
+				nimilista.append(nimi)
+
+		self.post_mysql(cursor)
+
+		return nimilista
+
+
+
+	def pre_mysql(self):
+
+		cursor = None
+
+		try:
+			if self.mysql_conn is None:
+				self.mysql_conn = self.mysql_connect()
+
+			cursor = self.mysql_conn.cursor()
+
+		except Error as error:
+			if self.mysql_conn is not None and self.mysql_conn.is_connected():
+				self.mysql_conn.close()
+
+			traceback.print_exc(file=sys.stdout)
+			print(error)
+			cursor = None
+
+		return cursor
+
+	def post_mysql(self, cursor):
+
+
+		cursor.close()
+		self.mysql_conn.close()
+		self.mysql_conn = None;
+
+
+	def palauta_kaikki_kannasta(self):
+
+		record = None
+
+		cursor = self.pre_mysql(cursor)
+
+		query = 'select * from osakedata'
+		cursor.execute(query, ())
+		record = cursor.fetchall()
+
+		self.post_mysql(cursor)
 
 		return record
 

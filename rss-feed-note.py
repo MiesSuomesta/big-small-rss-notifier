@@ -250,11 +250,13 @@ class Firehose:
 					if guid not in self.guidsDeleted:
 						self.guidsDeleted.append(guid)
 
-					filePath = UpdateItem['tmpimage']
+					if UpdateItem is not None:
+						if 'tmpimage' in UpdateItem:
+							filePath = UpdateItem['tmpimage']
 
-					if filePath is not None:
-						if os.path.exists(filePath):
-							os.remove(filePath)
+							if filePath is not None:
+								if os.path.exists(filePath):
+									os.remove(filePath)
 
 					del aDict[guid]
 
